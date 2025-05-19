@@ -1,0 +1,556 @@
+# This is the SAM template that represents the architecture of your serverless application
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-basics.html
+
+# The AWSTemplateFormatVersion identifies the capabilities of the template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  ortodoncia-api
+
+# Transform section specifies one or more macros that AWS CloudFormation uses to process your template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
+Transform:
+  - AWS::Serverless-2016-10-31
+
+# Resources declares the AWS resources that you want to include in the stack
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'http://localhost:5173'"
+
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-all-items.js
+  getAllItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-items.getAllItemsHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A simple example includes a HTTP get method to get all items from a DynamoDB table.
+      Policies:
+        # Give Create/Read/Update/Delete Permissions to the SampleTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SampleTable
+      Environment:
+        Variables:
+          # Make table name accessible as environment variable from function code during execution
+          SAMPLE_TABLE: !Ref SampleTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-by-id.js
+  getByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-by-id.getByIdHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A simple example includes a HTTP get method to get one item by id from a DynamoDB table.
+      Policies:
+        # Give Create/Read/Update/Delete Permissions to the SampleTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SampleTable
+      Environment:
+        Variables:
+          # Make table name accessible as environment variable from function code during execution
+          SAMPLE_TABLE: !Ref SampleTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /{id}
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: put-item.js
+  putItemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/put-item.putItemHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A simple example includes a HTTP post method to add one item to a DynamoDB table.
+      Policies:
+        # Give Create/Read/Update/Delete Permissions to the SampleTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SampleTable
+      Environment:
+        Variables:
+          # Make table name accessible as environment variable from function code during execution
+          SAMPLE_TABLE: !Ref SampleTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /
+            Method: POST
+            # CORS will be set globally below
+  # Simple syntax to create a DynamoDB table with a single attribute primary key, more in
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesssimpletable
+
+  # DynamoDB table to store item: {id: <ID>, name: <NAME>}
+  SampleTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-all-pacientes.js
+  getAllPacientesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-pacientes.getAllPacientesHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener todos los pacientes
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /pacientes
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-all-procedimientos.js
+  getAllProcedimientosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-procedimientos.getAllProcedimientosHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener todos los procedimientos
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /procedimientos
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-all-usuarios.js
+  getAllUsuariosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-usuarios.getAllUsuariosHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener todos los usuarios
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /usuarios
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-all-facturas.js
+  getAllFacturasFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-facturas.getAllFacturasHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener todas las facturas
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /facturas
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-all-consultas-procedimientos.js
+  getAllConsultasProcedimientosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-consultas-procedimientos.getAllConsultasProcedimientosHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener todas las consultas/procedimientos
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /consultas-procedimientos
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: crear-consulta-procedimiento.js
+  crearConsultaProcedimientoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/crear-consulta-procedimiento.crearConsultaProcedimientoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Crear consulta/procedimiento, descontar inventario y facturar
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /consultas-procedimientos
+            Method: POST
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-paciente-by-id.js
+  getPacienteByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-paciente-by-id.getPacienteByIdHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener paciente por ID
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /pacientes/{id}
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: crear-paciente.js
+  crearPacienteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/crear-paciente.crearPacienteHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Crear paciente
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /pacientes
+            Method: POST
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: actualizar-paciente.js
+  actualizarPacienteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/actualizar-paciente.actualizarPacienteHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Actualizar paciente
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /pacientes/{id}
+            Method: PUT
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: eliminar-paciente.js
+  eliminarPacienteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/eliminar-paciente.eliminarPacienteHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Eliminar paciente
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /pacientes/{id}
+            Method: DELETE
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-factura-by-id.js
+  getFacturaByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-factura-by-id.getFacturaByIdHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener factura por ID
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /facturas/{id}
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: actualizar-factura.js
+  actualizarFacturaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/actualizar-factura.actualizarFacturaHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Actualizar factura (marcar como pagada, etc)
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /facturas/{id}
+            Method: PUT
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: generar-factura.js
+  generarFacturaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/generar-factura.generarFacturaHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Generar factura desde procedimientos realizados
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /facturas/generar
+            Method: POST
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: get-insumo-by-id.js
+  getInsumoByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-insumo-by-id.getInsumoByIdHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener insumo por ID
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /inventario/{id}
+            Method: GET
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: crear-insumo.js
+  crearInsumoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/crear-insumo.crearInsumoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Crear insumo
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /inventario
+            Method: POST
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: actualizar-insumo.js
+  actualizarInsumoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/actualizar-insumo.actualizarInsumoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Actualizar insumo (actualizar stock manualmente)
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /inventario/{id}
+            Method: PUT
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: eliminar-insumo.js
+  eliminarInsumoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/eliminar-insumo.eliminarInsumoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Eliminar insumo
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /inventario/{id}
+            Method: DELETE
+            # CORS will be set globally below
+  # Each Lambda function is defined by properties:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with el endpoint para obtener todos los insumos
+  getAllInsumosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-insumos.getAllInsumosHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Obtener todos los insumos
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /inventario
+            Method: GET
+            # CORS will be set globalmente
+  # Agrega el recurso global de API Gateway con CORS habilitado para localhost:5173
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowOrigin: "'http://localhost:5173'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
+
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  loginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/login.loginHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Login de usuario (devuelve JWT y rol)
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /login
+            Method: POST

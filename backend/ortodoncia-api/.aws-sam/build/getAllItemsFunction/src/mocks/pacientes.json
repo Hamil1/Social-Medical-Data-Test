@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "nombre": "Ana Pérez",
+    "documento_identidad": "001-1234567-8",
+    "telefono": "809-555-1111",
+    "email": "ana.perez@mail.com",
+    "direccion": "Calle 10, Santo Domingo",
+    "historial_clinico": "Sin antecedentes relevantes.",
+    "fecha_registro": "2025-05-17"
+  },
+  {
+    "id": 2,
+    "nombre": "José Gómez",
+    "documento_identidad": "001-7654321-9",
+    "telefono": "809-555-2222",
+    "email": "jose.gomez@mail.com",
+    "direccion": "Calle 5, Santiago",
+    "historial_clinico": "Alergia a penicilina.",
+    "fecha_registro": "2025-05-17"
+  }
+]

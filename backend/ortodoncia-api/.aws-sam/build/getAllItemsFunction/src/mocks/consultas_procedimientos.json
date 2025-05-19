@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "paciente_id": 1,
+    "procedimiento_id": 1,
+    "odontologo_id": 2,
+    "fecha_realizacion": "2025-05-17",
+    "notas_clinicas": "Limpieza dental realizada sin complicaciones.",
+    "factura_id": 1
+  }
+]

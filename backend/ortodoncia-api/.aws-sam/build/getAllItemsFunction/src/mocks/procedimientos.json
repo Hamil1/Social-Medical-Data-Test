@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "nombre": "Limpieza dental",
+    "precio": 3000,
+    "descripcion": "Profilaxis general",
+    "insumos_necesarios": ["Guantes de látex", "Pasta profiláctica"]
+  },
+  {
+    "id": 2,
+    "nombre": "Extracción de muela",
+    "precio": 5000,
+    "descripcion": "Extracción simple",
+    "insumos_necesarios": [
+      "Guantes de látex",
+      "Jeringas de anestesia",
+      "Anestesia local"
+    ]
+  },
+  {
+    "id": 3,
+    "nombre": "Blanqueamiento dental",
+    "precio": 8000,
+    "descripcion": "Procedimiento estético",
+    "insumos_necesarios": ["Guantes de látex"]
+  },
+  {
+    "id": 4,
+    "nombre": "Colocación de brackets",
+    "precio": 15000,
+    "descripcion": "Inicio de tratamiento de ortodoncia",
+    "insumos_necesarios": ["Guantes de látex"]
+  }
+]

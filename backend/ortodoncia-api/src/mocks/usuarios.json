@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "nombre": "Admin",
+    "email": "admin@clinic.com",
+    "contrasena": "1234",
+    "rol": "administrador"
+  },
+  {
+    "id": 2,
+    "nombre": "Dra. Odonto",
+    "email": "odontologo@clinic.com",
+    "contrasena": "1234",
+    "rol": "odontologo"
+  },
+  {
+    "id": 3,
+    "nombre": "Asistente",
+    "email": "asistente@clinic.com",
+    "contrasena": "1234",
+    "rol": "asistente"
+  },
+  {
+    "id": 4,
+    "nombre": "Facturador",
+    "email": "facturador@clinic.com",
+    "contrasena": "1234",
+    "rol": "facturador"
+  }
+]

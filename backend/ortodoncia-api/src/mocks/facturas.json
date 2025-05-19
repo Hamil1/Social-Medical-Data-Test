@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "paciente_id": 1,
+    "monto_total": 3000,
+    "estado_pago": "pendiente",
+    "fecha_emision": "2025-05-17",
+    "fecha_pago": null
+  },
+  {
+    "id": 2,
+    "paciente_id": 1,
+    "monto_total": 2500,
+    "estado_pago": "pagada",
+    "fecha_emision": "2025-05-15",
+    "fecha_pago": "2025-05-17"
+  },
+  {
+    "id": 3,
+    "paciente_id": 2,
+    "monto_total": 3500,
+    "estado_pago": "pagada",
+    "fecha_emision": "2025-05-15",
+    "fecha_pago": "2025-05-17"
+  },
+  {
+    "id": 4,
+    "paciente_id": 2,
+    "monto_total": 5500,
+    "estado_pago": "pendiente",
+    "fecha_emision": "2025-05-15",
+    "fecha_pago": "2025-05-17"
+  },
+  {
+    "id": 5,
+    "paciente_id": 2,
+    "monto_total": 1500,
+    "estado_pago": "pendiente",
+    "fecha_emision": "2025-05-15",
+    "fecha_pago": "2025-05-17"
+  }
+]

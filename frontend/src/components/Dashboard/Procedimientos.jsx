@@ -224,6 +224,9 @@ const Procedimientos = () => {
   const [consultasProcedimientos, setConsultasProcedimientos] = useState([]);
   const [filtroEstatus, setFiltroEstatus] = useState("todos");
 
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  const rol = usuario?.rol;
+
   useEffect(() => {
     api
       .get("/procedimientos")
@@ -270,15 +273,17 @@ const Procedimientos = () => {
         </Tabs>
         {tab === 0 && (
           <>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenDialog}
-              color="primary"
-              sx={{ mt: 2, mr: 2 }}
-            >
-              Registrar procedimiento (catálogo)
-            </Button>
+            {(rol === "administrador" || rol === "asistente") && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenDialog}
+                color="primary"
+                sx={{ mt: 2, mr: 2 }}
+              >
+                Registrar procedimiento (catálogo)
+              </Button>
+            )}
             {loading ? (
               <CircularProgress />
             ) : (
@@ -303,10 +308,19 @@ const Procedimientos = () => {
                 </Table>
               </TableContainer>
             )}
+            {rol === "odontologo" && (
+              <Box mt={2}>
+                <Typography color="info.main">
+                  Solo puedes visualizar el catálogo de procedimientos. Para
+                  agregar o modificar, contacta a un administrador o asistente.
+                </Typography>
+              </Box>
+            )}
           </>
         )}
         {tab === 1 && (
           <>
+            {/* Todos los roles con acceso al módulo pueden registrar procedimientos realizados */}
             <Button
               variant="outlined"
               onClick={() => setOpenDialogPaciente(true)}
@@ -421,6 +435,14 @@ const Procedimientos = () => {
         procedimientos={procedimientosList}
         odontologos={odontologos}
       />
+      {/* Solo administradores y asistentes pueden abrir el diálogo de catálogo */}
+      {!(rol === "administrador" || rol === "asistente") && (
+        <RegistroProcedimientoDialog
+          open={false}
+          onClose={handleCloseDialog}
+          onSubmit={handleSubmit}
+        />
+      )}
     </div>
   );
 };

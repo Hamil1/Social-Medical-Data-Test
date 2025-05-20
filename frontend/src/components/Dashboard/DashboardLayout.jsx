@@ -36,11 +36,23 @@ const menuItems = [
   },
 ];
 
+// Definición de visibilidad de módulos por rol
+const menuItemsByRol = {
+  administrador: ["Pacientes", "Procedimientos", "Facturación", "Inventario"],
+  odontologo: ["Pacientes", "Procedimientos", "Facturación", "Inventario"], // Inventario solo visualización
+  asistente: ["Pacientes", "Inventario"],
+  facturador: ["Facturación"],
+};
+
 const drawerWidth = 220;
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  const rol = usuario?.rol;
+  const visibleMenuItems = rol
+    ? menuItems.filter((item) => menuItemsByRol[rol]?.includes(item.text))
+    : [];
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -85,7 +97,7 @@ const DashboardLayout = () => {
       >
         <Toolbar />
         <List>
-          {menuItems.map((item) => (
+          {visibleMenuItems.map((item) => (
             <ListItem
               button
               key={item.text}

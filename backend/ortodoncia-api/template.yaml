@@ -500,7 +500,7 @@ Resources:
             RestApiId: !Ref Api
             Path: /inventario/{id}
             Method: DELETE
-            # CORS will be set globally below
+            # CORS will be set globally abajo
   # Each Lambda function is defined by properties:
   # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
 
@@ -532,11 +532,6 @@ Resources:
         AllowOrigin: "'http://localhost:5173'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
-
-Outputs:
-  WebEndpoint:
-    Description: "API Gateway endpoint URL for Prod stage"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   loginFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -554,3 +549,8 @@ Outputs:
             RestApiId: !Ref Api
             Path: /login
             Method: POST
+
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

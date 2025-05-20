@@ -31,7 +31,6 @@ const Facturacion = () => {
   const [pacientes, setPacientes] = useState([]);
   const [selectedPaciente, setSelectedPaciente] = useState("");
   const [odontologos, setOdontologos] = useState([]);
-  const [procedimientos, setProcedimientos] = useState([]);
   const [procedimientosPendientes, setProcedimientosPendientes] = useState([]);
   const [selectedOdontologo, setSelectedOdontologo] = useState("");
   const [selectedProcedimiento, setSelectedProcedimiento] = useState("");
@@ -42,6 +41,9 @@ const Facturacion = () => {
   const [generando, setGenerando] = useState(false);
   const [filtro, setFiltro] = useState("pendientes");
 
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  const rol = usuario?.rol;
+
   useEffect(() => {
     fetchFacturas();
     api.get("/pacientes").then((res) => setPacientes(res.data));
@@ -50,7 +52,6 @@ const Facturacion = () => {
       .then((res) =>
         setOdontologos(res.data.filter((u) => u.rol === "odontologo"))
       );
-    api.get("/procedimientos").then((res) => setProcedimientos(res.data));
   }, []);
 
   useEffect(() => {
@@ -113,7 +114,7 @@ const Facturacion = () => {
       setSelectedProcedimiento("");
       setFechaRealizacion(new Date().toISOString().slice(0, 10));
       setSelectedProcedimientos([]);
-    } catch (e) {
+    } catch {
       // Manejo de error opcional
     } finally {
       setGenerando(false);
@@ -141,14 +142,16 @@ const Facturacion = () => {
         <Typography variant="h4" gutterBottom>
           Módulo de Facturación
         </Typography>
-        <Button
-          variant="contained"
-          onClick={handleOpenDialog}
-          color="primary"
-          sx={{ mt: 2 }}
-        >
-          Generar factura desde procedimientos
-        </Button>
+        {rol === "facturador" && (
+          <Button
+            variant="contained"
+            onClick={handleOpenDialog}
+            color="primary"
+            sx={{ mt: 2 }}
+          >
+            Generar factura desde procedimientos
+          </Button>
+        )}
         <TextField
           select
           label="Filtrar facturas"
@@ -201,15 +204,16 @@ const Facturacion = () => {
                     <TableCell>{f.fecha_emision}</TableCell>
                     <TableCell>{f.fecha_pago || "-"}</TableCell>
                     <TableCell>
-                      {f.estado_pago === "pendiente" && (
-                        <IconButton
-                          color="success"
-                          onClick={() => handleMarcarPagada(f)}
-                          title="Marcar como pagada"
-                        >
-                          <CheckIcon />
-                        </IconButton>
-                      )}
+                      {rol === "facturador" &&
+                        f.estado_pago === "pendiente" && (
+                          <IconButton
+                            color="success"
+                            onClick={() => handleMarcarPagada(f)}
+                            title="Marcar como pagada"
+                          >
+                            <CheckIcon />
+                          </IconButton>
+                        )}
                       <IconButton
                         color="primary"
                         onClick={() => handleDescargarPDF(f)}
@@ -224,11 +228,14 @@ const Facturacion = () => {
           </Table>
         </TableContainer>
       )}
+      {/* Solo el facturador puede abrir el diálogo */}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
         maxWidth="xs"
         fullWidth
+        /* Ocultar el diálogo si no es facturador */
+        style={{ display: rol === "facturador" ? undefined : "none" }}
       >
         <DialogTitle>Generar factura desde procedimientos</DialogTitle>
         <DialogContent>
@@ -317,6 +324,14 @@ const Facturacion = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      {/* Mensaje para asistentes (no acceso) */}
+      {rol === "asistente" && (
+        <Box mt={4}>
+          <Typography color="error">
+            No tienes permisos para acceder a facturación.
+          </Typography>
+        </Box>
+      )}
     </div>
   );
 };

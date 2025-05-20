@@ -16,6 +16,7 @@ import {
   DialogActions,
   TextField,
   IconButton,
+  Box,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -162,6 +163,9 @@ const Inventario = () => {
     }
   };
 
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  const rol = usuario?.rol;
+
   return (
     <div>
       <Typography variant="h4" gutterBottom>
@@ -194,17 +198,21 @@ const Inventario = () => {
                   <TableCell>{i.fecha_vencimiento}</TableCell>
                   <TableCell>{i.costo_unitario}</TableCell>
                   <TableCell align="right">
-                    <IconButton onClick={() => handleEdit(i)} size="small">
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => setDeleteId(i.id)}
-                      size="small"
-                      color="error"
-                      disabled={deleting && deleteId === i.id}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    {rol !== "odontologo" && (
+                      <>
+                        <IconButton onClick={() => handleEdit(i)} size="small">
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => setDeleteId(i.id)}
+                          size="small"
+                          color="error"
+                          disabled={deleting && deleteId === i.id}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -212,27 +220,42 @@ const Inventario = () => {
           </Table>
         </TableContainer>
       )}
-      <EditInsumoDialog
-        open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        initialValues={selectedInsumo || {}}
-        onSubmit={handleEditSubmit}
-      />
-      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
-        <DialogTitle>¿Eliminar insumo?</DialogTitle>
-        <DialogContent>Esta acción no se puede deshacer.</DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteId(null)}>Cancelar</Button>
-          <Button
-            onClick={() => handleDelete(deleteId)}
-            color="error"
-            variant="contained"
-            disabled={deleting}
-          >
-            Eliminar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Diálogo de edición solo para roles permitidos */}
+      {rol !== "odontologo" && (
+        <EditInsumoDialog
+          open={editDialogOpen}
+          onClose={() => setEditDialogOpen(false)}
+          initialValues={selectedInsumo || {}}
+          onSubmit={handleEditSubmit}
+        />
+      )}
+      {/* Diálogo de eliminación solo para roles permitidos */}
+      {rol !== "odontologo" && (
+        <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
+          <DialogTitle>¿Eliminar insumo?</DialogTitle>
+          <DialogContent>Esta acción no se puede deshacer.</DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteId(null)}>Cancelar</Button>
+            <Button
+              onClick={() => handleDelete(deleteId)}
+              color="error"
+              variant="contained"
+              disabled={deleting}
+            >
+              Eliminar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+      {/* Mensaje para odontólogo (solo visualización) */}
+      {rol === "odontologo" && (
+        <Box mt={3}>
+          <Typography color="info.main">
+            Solo puedes visualizar el inventario. Para gestionar insumos,
+            contacta a un asistente o administrador.
+          </Typography>
+        </Box>
+      )}
     </div>
   );
 };

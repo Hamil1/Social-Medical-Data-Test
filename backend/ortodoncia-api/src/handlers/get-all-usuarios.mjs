@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-const USUARIOS_PATH = new URL("../mocks/usuarios.json", import.meta.url);
+import { query } from "../db.mjs";
 
 export const getAllUsuariosHandler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -7,18 +6,19 @@ export const getAllUsuariosHandler = async (event) => {
       `getAllUsuarios solo acepta el método GET, intentaste: ${event.httpMethod}`
     );
   }
-  let items = [];
   try {
-    const data = await fs.readFile(USUARIOS_PATH, "utf-8");
-    items = JSON.parse(data);
+    const result = await query("SELECT * FROM usuarios");
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result.rows),
+    };
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo usuarios" }),
+      body: JSON.stringify({
+        error: "Error consultando usuarios",
+        details: err.message,
+      }),
     };
   }
-  return {
-    statusCode: 200,
-    body: JSON.stringify(items),
-  };
 };

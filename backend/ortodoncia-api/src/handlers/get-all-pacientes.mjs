@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-const PACIENTES_PATH = new URL("../mocks/pacientes.json", import.meta.url);
+import { query } from "../db.mjs";
 
 export const getAllPacientesHandler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -7,18 +6,19 @@ export const getAllPacientesHandler = async (event) => {
       `getAllPacientes solo acepta el método GET, intentaste: ${event.httpMethod}`
     );
   }
-  let items = [];
   try {
-    const data = await fs.readFile(PACIENTES_PATH, "utf-8");
-    items = JSON.parse(data);
+    const result = await query("SELECT * FROM pacientes");
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result.rows),
+    };
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo pacientes" }),
+      body: JSON.stringify({
+        error: "Error consultando pacientes",
+        details: err.message,
+      }),
     };
   }
-  return {
-    statusCode: 200,
-    body: JSON.stringify(items),
-  };
 };

@@ -12,6 +12,16 @@ Description: >-
 Transform:
   - AWS::Serverless-2016-10-31
 
+Globals:
+  Function:
+    Environment:
+      Variables:
+        PGHOST: host.docker.internal
+        PGUSER: postgres
+        PGPASSWORD: postgres
+        PGDATABASE: ortodoncia
+        PGPORT: "5432"
+
 # Resources declares the AWS resources that you want to include in the stack
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
 Resources:

@@ -1,8 +1,4 @@
-import fs from "fs/promises";
-const PROCEDIMIENTOS_PATH = new URL(
-  "../mocks/procedimientos.json",
-  import.meta.url
-);
+import { query } from "../db.mjs";
 
 export const getAllProcedimientosHandler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -10,18 +6,19 @@ export const getAllProcedimientosHandler = async (event) => {
       `getAllProcedimientos solo acepta el método GET, intentaste: ${event.httpMethod}`
     );
   }
-  let items = [];
   try {
-    const data = await fs.readFile(PROCEDIMIENTOS_PATH, "utf-8");
-    items = JSON.parse(data);
+    const result = await query("SELECT * FROM procedimientos");
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result.rows),
+    };
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo procedimientos" }),
+      body: JSON.stringify({
+        error: "Error consultando procedimientos",
+        details: err.message,
+      }),
     };
   }
-  return {
-    statusCode: 200,
-    body: JSON.stringify(items),
-  };
 };

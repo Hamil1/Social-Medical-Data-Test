@@ -6,7 +6,8 @@
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.398.0",
         "@aws-sdk/lib-dynamodb": "^3.398.0",
-        "jsonwebtoken": "^9.0.2"
+        "jsonwebtoken": "^9.0.2",
+        "pg": "^8.16.0"
     },
     "devDependencies": {
         "aws-sdk-client-mock": "^2.0.0",

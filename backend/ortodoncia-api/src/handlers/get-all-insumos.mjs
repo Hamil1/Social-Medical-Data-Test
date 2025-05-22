@@ -1,10 +1,14 @@
-import fs from "fs/promises";
-const INSUMOS_PATH = new URL("../mocks/inventario.json", import.meta.url);
+import { query } from "../db.mjs";
 
-// Handler para obtener todos los insumos (mock)
+// Handler para obtener todos los insumos (desde PostgreSQL)
 export const getAllInsumosHandler = async (event) => {
+  if (event.httpMethod && event.httpMethod !== "GET") {
+    throw new Error(
+      `getAllInsumos solo acepta el método GET, intentaste: ${event.httpMethod}`
+    );
+  }
   try {
-    const data = await fs.readFile(INSUMOS_PATH, "utf-8");
+    const result = await query("SELECT * FROM inventario");
     return {
       statusCode: 200,
       headers: {
@@ -12,12 +16,15 @@ export const getAllInsumosHandler = async (event) => {
         "Access-Control-Allow-Headers": "*",
         "Access-Control-Allow-Methods": "*",
       },
-      body: data,
+      body: JSON.stringify(result.rows),
     };
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo insumos" }),
+      body: JSON.stringify({
+        error: "Error consultando insumos",
+        details: err.message,
+      }),
     };
   }
 };

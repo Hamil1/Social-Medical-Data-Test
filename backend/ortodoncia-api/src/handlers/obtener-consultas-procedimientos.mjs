@@ -167,3 +167,41 @@ export const crearConsultaProcedimientoHandler = async (event) => {
     };
   }
 };
+
+export const obtenerConsultasProcedimientosHandler = async (event) => {
+  if (event.httpMethod !== "GET") {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({
+        error: `Método no permitido: ${event.httpMethod}`,
+      }),
+    };
+  }
+  try {
+    // Obtener todas las consultas/procedimientos
+    const consultas = await query("SELECT * FROM consultas_procedimientos");
+    // Para cada consulta, obtener sus insumos utilizados con cantidad
+    for (const consulta of consultas.rows) {
+      const insumos = await query(
+        `SELECT cpi.insumo_id, i.nombre_insumo, cpi.cantidad_utilizada
+         FROM consultas_procedimientos_insumos cpi
+         JOIN inventario i ON i.id = cpi.insumo_id
+         WHERE cpi.consulta_procedimiento_id = $1`,
+        [consulta.id]
+      );
+      consulta.insumos_utilizados = insumos.rows;
+    }
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ consultas: consultas.rows }),
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Error obteniendo consultas/procedimientos",
+        details: err.message,
+      }),
+    };
+  }
+};

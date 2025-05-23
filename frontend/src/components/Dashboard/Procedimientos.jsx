@@ -25,6 +25,7 @@ import {
 import Autocomplete from "@mui/material/Autocomplete";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import api from "../../services/api";
 import { useFormikContext, Formik, Form } from "formik";
@@ -125,6 +126,60 @@ const RegistroProcedimientoPacienteSchema = Yup.object().shape({
   notas_clinicas: Yup.string(),
 });
 
+function InsumosSync({
+  procedimientos,
+  inventario,
+  setInsumosSeleccionados,
+  setCantidadErrores,
+}) {
+  const { values } = useFormikContext();
+
+  React.useEffect(() => {
+    if (!values.procedimiento_id) {
+      setInsumosSeleccionados([]);
+      setCantidadErrores({});
+      return;
+    }
+    const proc = procedimientos.find(
+      (p) => String(p.id) === String(values.procedimiento_id)
+    );
+    let insumos = [];
+    if (proc && proc.insumos_necesarios) {
+      if (Array.isArray(proc.insumos_necesarios)) {
+        insumos = proc.insumos_necesarios;
+      } else if (typeof proc.insumos_necesarios === "string") {
+        insumos = proc.insumos_necesarios
+          .split(",")
+          .map((n) => n.trim())
+          .filter(Boolean)
+          .map(
+            (nombre) =>
+              inventario.find((i) => i.nombre_insumo === nombre) || {
+                nombre_insumo: nombre,
+              }
+          );
+      }
+      setInsumosSeleccionados((prev) => {
+        // Mantén la cantidad previa si existe, si no pon 1
+        return insumos.map((i) => {
+          const previo = prev.find(
+            (p) => p.id === i.id || p.nombre_insumo === i.nombre_insumo
+          );
+          return {
+            ...i,
+            cantidad_utilizada: previo?.cantidad_utilizada ?? 1,
+          };
+        });
+      });
+      setCantidadErrores({});
+    } else {
+      setInsumosSeleccionados([]);
+      setCantidadErrores({});
+    }
+  }, [values.procedimiento_id, procedimientos, inventario]);
+  return null;
+}
+
 const RegistroProcedimientoPacienteDialog = ({
   open,
   onClose,
@@ -136,57 +191,6 @@ const RegistroProcedimientoPacienteDialog = ({
 }) => {
   const [insumosSeleccionados, setInsumosSeleccionados] = React.useState([]);
   const [cantidadErrores, setCantidadErrores] = React.useState({});
-
-  // Subcomponente para usar useFormikContext y así poder usar useEffect correctamente
-  function InsumosSync({
-    procedimientos,
-    inventario,
-    setInsumosSeleccionados,
-    setCantidadErrores,
-  }) {
-    const { values } = useFormikContext();
-    React.useEffect(() => {
-      if (!values.procedimiento_id) {
-        setInsumosSeleccionados([]);
-        setCantidadErrores({});
-        return;
-      }
-      const proc = procedimientos.find(
-        (p) => String(p.id) === String(values.procedimiento_id)
-      );
-      let insumos = [];
-      if (proc && proc.insumos_necesarios) {
-        if (Array.isArray(proc.insumos_necesarios)) {
-          insumos = proc.insumos_necesarios;
-        } else if (typeof proc.insumos_necesarios === "string") {
-          insumos = proc.insumos_necesarios
-            .split(",")
-            .map((n) => n.trim())
-            .filter(Boolean)
-            .map(
-              (nombre) =>
-                inventario.find((i) => i.nombre_insumo === nombre) || {
-                  nombre_insumo: nombre,
-                }
-            );
-        }
-        setInsumosSeleccionados(
-          insumos.map((i) => ({ ...i, cantidad_utilizada: 1 }))
-        );
-        setCantidadErrores({});
-      } else {
-        setInsumosSeleccionados([]);
-        setCantidadErrores({});
-      }
-    }, [
-      values.procedimiento_id,
-      procedimientos,
-      inventario,
-      setInsumosSeleccionados,
-      setCantidadErrores,
-    ]);
-    return null;
-  }
 
   // Validación de cantidades
   const validarCantidad = (idx, cantidad) => {
@@ -356,7 +360,6 @@ const RegistroProcedimientoPacienteDialog = ({
                           </TableHead>
                           <TableBody>
                             {insumosSeleccionados.map((insumo, idx) => {
-                              console.log("inventario", inventario);
                               const inventarioInsumo = inventario.find(
                                 (i) => i.id === insumo.id
                               );
@@ -401,16 +404,17 @@ const RegistroProcedimientoPacienteDialog = ({
                                       size="small"
                                       value={insumo.cantidad_utilizada}
                                       onChange={(e) => {
+                                        const value = Number(e.target.value);
+                                        if (isNaN(value) || value < 1) return; // Evita valores inválidos
                                         const nuevaLista = [
                                           ...insumosSeleccionados,
                                         ];
-                                        nuevaLista[idx].cantidad_utilizada =
-                                          Number(e.target.value);
+                                        nuevaLista[idx] = {
+                                          ...nuevaLista[idx],
+                                          cantidad_utilizada: value,
+                                        };
                                         setInsumosSeleccionados(nuevaLista);
-                                        validarCantidad(
-                                          idx,
-                                          Number(e.target.value)
-                                        );
+                                        validarCantidad(idx, value);
                                       }}
                                       inputProps={{
                                         min: 1,
@@ -419,6 +423,7 @@ const RegistroProcedimientoPacienteDialog = ({
                                             ? stockOriginal
                                             : undefined,
                                         style: { textAlign: "center" },
+                                        step: 1, // Asegura que las flechas sumen/restan de a 1
                                       }}
                                       sx={{
                                         width: 80,
@@ -442,7 +447,7 @@ const RegistroProcedimientoPacienteDialog = ({
                                     >
                                       {typeof stock === "number" &&
                                       !isNaN(stock)
-                                        ? stock
+                                        ? stock + 1
                                         : 0}
                                       {stock < 5 && (
                                         <span
@@ -693,7 +698,7 @@ const EditarConsultaProcedimientoDialog = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Editar Procedimiento Realizado</DialogTitle>
+      <DialogTitle>Ver Procedimiento Realizado</DialogTitle>
       <Formik
         initialValues={{
           ...consulta,
@@ -731,10 +736,10 @@ const EditarConsultaProcedimientoDialog = ({
                   label="Paciente"
                   name="paciente_id"
                   value={values.paciente_id}
-                  onChange={handleChange}
-                  error={touched.paciente_id && Boolean(errors.paciente_id)}
-                  helperText={touched.paciente_id && errors.paciente_id}
+                  InputProps={{ readOnly: true }}
+                  SelectProps={{ native: false, readOnly: true }}
                   fullWidth
+                  disabled
                 >
                   {pacientes.map((p) => (
                     <MenuItem key={p.id} value={p.id}>
@@ -747,14 +752,10 @@ const EditarConsultaProcedimientoDialog = ({
                   label="Procedimiento"
                   name="procedimiento_id"
                   value={values.procedimiento_id}
-                  onChange={handleChange}
-                  error={
-                    touched.procedimiento_id && Boolean(errors.procedimiento_id)
-                  }
-                  helperText={
-                    touched.procedimiento_id && errors.procedimiento_id
-                  }
+                  InputProps={{ readOnly: true }}
+                  SelectProps={{ native: false, readOnly: true }}
                   fullWidth
+                  disabled
                 >
                   {procedimientos.map((proc) => (
                     <MenuItem key={proc.id} value={proc.id}>
@@ -767,10 +768,10 @@ const EditarConsultaProcedimientoDialog = ({
                   label="Odontólogo"
                   name="odontologo_id"
                   value={values.odontologo_id}
-                  onChange={handleChange}
-                  error={touched.odontologo_id && Boolean(errors.odontologo_id)}
-                  helperText={touched.odontologo_id && errors.odontologo_id}
+                  InputProps={{ readOnly: true }}
+                  SelectProps={{ native: false, readOnly: true }}
                   fullWidth
+                  disabled
                 >
                   {odontologos.map((o) => (
                     <MenuItem key={o.id} value={o.id}>
@@ -782,26 +783,21 @@ const EditarConsultaProcedimientoDialog = ({
                   label="Notas clínicas"
                   name="notas_clinicas"
                   value={values.notas_clinicas}
-                  onChange={handleChange}
+                  InputProps={{ readOnly: true }}
                   fullWidth
                   multiline
                   minRows={2}
+                  disabled
                 />
                 <TextField
                   label="Fecha de realización"
                   name="fecha_realizacion"
                   type="date"
                   value={values.fecha_realizacion}
-                  onChange={handleChange}
+                  InputProps={{ readOnly: true }}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
-                  error={
-                    touched.fecha_realizacion &&
-                    Boolean(errors.fecha_realizacion)
-                  }
-                  helperText={
-                    touched.fecha_realizacion && errors.fecha_realizacion
-                  }
+                  disabled
                 />
                 {insumosSeleccionados.length > 0 && (
                   <Box sx={{ mt: 2 }}>
@@ -852,11 +848,9 @@ const EditarConsultaProcedimientoDialog = ({
                           </TableHead>
                           <TableBody>
                             {insumosSeleccionados.map((insumo, idx) => {
-                              console.log("inventario", inventario);
                               const inventarioInsumo = inventario.find(
                                 (i) => i.id === insumo.id
                               );
-                              // Usar cantidad_disponible si existe, si no cantidad
                               let stockOriginal = "-";
                               if (inventarioInsumo) {
                                 if (
@@ -875,14 +869,9 @@ const EditarConsultaProcedimientoDialog = ({
                                   );
                                 }
                               }
-                              const cantidadUtilizada =
-                                Number(insumo.cantidad_utilizada) || 0;
                               const stock =
                                 stockOriginal !== "-" && !isNaN(stockOriginal)
-                                  ? Math.max(
-                                      stockOriginal - cantidadUtilizada,
-                                      0
-                                    )
+                                  ? Math.max(stockOriginal, 0)
                                   : 0;
                               return (
                                 <TableRow
@@ -894,21 +883,10 @@ const EditarConsultaProcedimientoDialog = ({
                                   <TableCell align="center">
                                     <TextField
                                       disabled
+                                      readOnly
                                       type="number"
                                       size="small"
                                       value={insumo.cantidad_utilizada}
-                                      onChange={(e) => {
-                                        const nuevaLista = [
-                                          ...insumosSeleccionados,
-                                        ];
-                                        nuevaLista[idx].cantidad_utilizada =
-                                          Number(e.target.value);
-                                        setInsumosSeleccionados(nuevaLista);
-                                        validarCantidad(
-                                          idx,
-                                          Number(e.target.value)
-                                        );
-                                      }}
                                       inputProps={{
                                         min: 1,
                                         max:
@@ -916,13 +894,13 @@ const EditarConsultaProcedimientoDialog = ({
                                             ? stockOriginal
                                             : undefined,
                                         style: { textAlign: "center" },
+                                        step: 1,
                                       }}
                                       sx={{
                                         width: 80,
                                         backgroundColor: "#fff",
                                         borderRadius: 1,
                                       }}
-                                      error={!!cantidadErrores[idx]}
                                     />
                                   </TableCell>
                                   <TableCell align="center">
@@ -961,20 +939,25 @@ const EditarConsultaProcedimientoDialog = ({
                         </Table>
                       </TableContainer>
                     </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        mt: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        backgroundColor: "#FFF3E0",
+                        color: "#E65100",
+                        fontWeight: 500,
+                        textAlign: "center",
+                      }}
+                    >
+                      No es recomendable editar los Procedimientos realizados a los pacientes, ya que esto puede afectar el historial clínico. Si es necesario realizar cambios, se recomienda crear un nuevo procedimiento.
+                    </Typography>
                   </Box>
                 )}
               </Box>
             </DialogContent>
-            <DialogActions>
-              <Button onClick={onClose}>Cancelar</Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={algunaCantidadInvalida}
-              >
-                Guardar cambios
-              </Button>
-            </DialogActions>
+            {/* Eliminar los botones del footer */}
           </Form>
         )}
       </Formik>
@@ -1376,7 +1359,7 @@ const Procedimientos = () => {
                                 onClick={() =>
                                   handleEditConsultaProcedimiento(c)
                                 }
-                                startIcon={<EditIcon />}
+                                startIcon={<VisibilityIcon />}
                                 sx={{ minWidth: 0, p: 1 }}
                               />
                               <Button
@@ -1503,3 +1486,7 @@ const Procedimientos = () => {
 };
 
 export default Procedimientos;
+
+// Nota: Si los registros de consultas-procedimientos se eliminan de la base de datos,
+// no es posible recuperar la cantidad utilizada de insumos para esos procedimientos.
+// Para mantener el historial, considera no eliminar físicamente los registros o usar un borrado lógico.

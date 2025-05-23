@@ -7,7 +7,9 @@ export const getAllPacientesHandler = async (event) => {
     );
   }
   try {
-    const result = await query("SELECT * FROM pacientes");
+    const result = await query(
+      `SELECT p.*, u.nombre as odontologo_nombre FROM pacientes p LEFT JOIN usuarios u ON p.odontologo_id = u.id`
+    );
     return {
       statusCode: 200,
       body: JSON.stringify(result.rows),

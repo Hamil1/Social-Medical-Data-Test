@@ -17,15 +17,26 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import PacienteFormDialog from "./PacienteFormDialog";
 import api from "../../services/api";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 
 const Pacientes = () => {
   const [pacientes, setPacientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editPaciente, setEditPaciente] = useState(null);
+  const [odontologos, setOdontologos] = useState([]);
+  const [alert, setAlert] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
     fetchPacientes();
+    api.get("/usuarios").then((res) => {
+      setOdontologos(res.data.filter((u) => u.rol === "odontologo"));
+    });
   }, []);
 
   const fetchPacientes = () => {
@@ -54,17 +65,33 @@ const Pacientes = () => {
     setEditPaciente(null);
   };
 
+  const handleCloseAlert = () => setAlert({ ...alert, open: false });
+
   const handleDialogSubmit = async (values, { setSubmitting }) => {
     try {
       if (editPaciente) {
         await api.put(`/pacientes/${editPaciente.id}`, values);
+        setAlert({
+          open: true,
+          message: "Paciente actualizado exitosamente",
+          severity: "success",
+        });
       } else {
         await api.post("/pacientes", values);
+        setAlert({
+          open: true,
+          message: "Paciente creado exitosamente",
+          severity: "success",
+        });
       }
       fetchPacientes();
-      setOpenDialog(false);
-    } catch (e) {
-      // Manejo de error opcional
+      setTimeout(() => setOpenDialog(false), 1200);
+    } catch {
+      setAlert({
+        open: true,
+        message: "Error al guardar paciente",
+        severity: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -136,9 +163,25 @@ const Pacientes = () => {
             email: "",
             direccion: "",
             historial: "",
+            odontologo_id: "",
           }
         }
+        odontologos={odontologos}
       />
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={2000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alert.severity}
+          sx={{ width: "100%" }}
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

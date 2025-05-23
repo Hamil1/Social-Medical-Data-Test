@@ -18,9 +18,16 @@ const PacienteSchema = Yup.object().shape({
   email: Yup.string().email("Email inválido").required("Requerido"),
   direccion: Yup.string().required("Requerido"),
   historial: Yup.string(),
+  odontologo_id: Yup.string().required("Selecciona un odontólogo"),
 });
 
-const PacienteFormDialog = ({ open, onClose, onSubmit, initialValues }) => {
+const PacienteFormDialog = ({
+  open,
+  onClose,
+  onSubmit,
+  initialValues,
+  odontologos = [],
+}) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
@@ -97,6 +104,22 @@ const PacienteFormDialog = ({ open, onClose, onSubmit, initialValues }) => {
                   multiline
                   minRows={3}
                 />
+                <TextField
+                  select
+                  label="Odontólogo asignado"
+                  name="odontologo_id"
+                  value={values.odontologo_id || ""}
+                  onChange={handleChange}
+                  error={touched.odontologo_id && Boolean(errors.odontologo_id)}
+                  helperText={touched.odontologo_id && errors.odontologo_id}
+                  fullWidth
+                >
+                  {odontologos.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.nombre}
+                    </option>
+                  ))}
+                </TextField>
               </Box>
             </DialogContent>
             <DialogActions>

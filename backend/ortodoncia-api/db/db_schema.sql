@@ -16,7 +16,8 @@ CREATE TABLE Pacientes (
     email VARCHAR(100),
     direccion VARCHAR(255),
     historial_clinico TEXT,
-    fecha_registro DATE NOT NULL
+    fecha_registro DATE NOT NULL,
+    odontologo_id INT REFERENCES Usuarios(id)
 );
 
 CREATE TABLE Procedimientos (

@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { query } from "../db.mjs";
 const MOCKS_DIR = "/var/task/src/mocks/";
 const TMP_DIR = "/tmp/";
 function getTmpPath(filename) {
@@ -47,6 +48,7 @@ export const crearPacienteHandler = async (event) => {
     direccion,
     historial_clinico,
     fecha_registro,
+    odontologo_id,
   } = body;
   if (
     !nombre ||
@@ -54,33 +56,37 @@ export const crearPacienteHandler = async (event) => {
     !telefono ||
     !email ||
     !direccion ||
-    !fecha_registro
+    !fecha_registro ||
+    !odontologo_id
   ) {
     return {
       statusCode: 400,
       body: JSON.stringify({ error: "Faltan campos obligatorios" }),
     };
   }
-  let pacientes = [];
   try {
-    pacientes = await readOrInitJson("pacientes.json");
-  } catch {
+    const result = await query(
+      `INSERT INTO pacientes (nombre, documento_identidad, telefono, email, direccion, historial_clinico, fecha_registro, odontologo_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [
+        nombre,
+        documento_identidad,
+        telefono,
+        email,
+        direccion,
+        historial_clinico || null,
+        fecha_registro,
+        odontologo_id,
+      ]
+    );
+    return { statusCode: 201, body: JSON.stringify(result.rows[0]) };
+  } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo pacientes" }),
+      body: JSON.stringify({
+        error: "Error creando paciente",
+        details: err.message,
+      }),
     };
   }
-  const nuevoPaciente = {
-    id: pacientes.length ? Math.max(...pacientes.map((p) => p.id)) + 1 : 1,
-    nombre,
-    documento_identidad,
-    telefono,
-    email,
-    direccion,
-    historial_clinico,
-    fecha_registro,
-  };
-  pacientes.push(nuevoPaciente);
-  await writeJson("pacientes.json", pacientes);
-  return { statusCode: 201, body: JSON.stringify(nuevoPaciente) };
 };

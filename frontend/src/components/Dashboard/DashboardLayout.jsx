@@ -15,6 +15,7 @@ import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
 import { Outlet, useNavigate } from "react-router-dom";
 
 const menuItems = [
@@ -34,12 +35,23 @@ const menuItems = [
     icon: <InventoryIcon />,
     path: "/dashboard/inventario",
   },
+  {
+    text: "Usuarios",
+    icon: <SupervisorAccountIcon />, // Nuevo ícono
+    path: "/dashboard/usuarios",
+  },
 ];
 
 // Definición de visibilidad de módulos por rol
 const menuItemsByRol = {
-  administrador: ["Pacientes", "Procedimientos", "Facturación", "Inventario"],
-  odontologo: ["Pacientes", "Procedimientos", "Facturación", "Inventario"], // Inventario solo visualización
+  administrador: [
+    "Pacientes",
+    "Procedimientos",
+    "Facturación",
+    "Inventario",
+    "Usuarios",
+  ],
+  odontologo: ["Pacientes", "Procedimientos", "Facturación", "Inventario"],
   asistente: ["Pacientes", "Inventario"],
   facturador: ["Facturación"],
 };
@@ -57,31 +69,39 @@ const DashboardLayout = () => {
   return (
     <Box sx={{ display: "flex" }}>
       <AppBar position="fixed" sx={{ zIndex: 1201 }}>
-        <Toolbar>
+        <Toolbar
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
           <Typography
             variant="h6"
             noWrap
             component="div"
-            sx={{ cursor: "pointer", flexGrow: 1 }}
+            sx={{ cursor: "pointer", flexGrow: 0, textAlign: "left" }}
             onClick={() => navigate("/dashboard")}
           >
             Módulo Odontología
           </Typography>
-          {usuario && (
-            <>
-              <Typography variant="body1" sx={{ mr: 2 }}>
-                {usuario.nombre} ({usuario.rol})
-              </Typography>
-              <LogoutIcon
-                sx={{ cursor: "pointer" }}
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("usuario");
-                  window.location.href = "/login";
-                }}
-              />
-            </>
-          )}
+          <Box sx={{ display: "flex", alignItems: "center", ml: "auto" }}>
+            {usuario && (
+              <>
+                <Typography variant="body1" sx={{ mr: 2 }}>
+                  {usuario.nombre} ({usuario.rol})
+                </Typography>
+                <LogoutIcon
+                  sx={{ cursor: "pointer" }}
+                  onClick={() => {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("usuario");
+                    window.location.href = "/login";
+                  }}
+                />
+              </>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
       <Drawer

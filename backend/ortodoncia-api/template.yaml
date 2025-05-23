@@ -202,7 +202,61 @@ Resources:
             RestApiId: !Ref Api
             Path: /usuarios
             Method: GET
-            # CORS will be set globally below
+            # CORS will be set globally abajo
+
+  # This is a Lambda function config associated with el endpoint para crear un usuario
+  crearUsuarioFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/crear-usuario.crearUsuarioHandler
+      Runtime: nodejs18.x
+      MemorySize: 128
+      Timeout: 100
+      Description: Crear usuario
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /usuarios
+            Method: POST
+            # CORS will be set globalmente
+
+  # This is a Lambda function config asociado con el endpoint para actualizar un usuario
+  actualizarUsuarioFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/actualizar-usuario.actualizarUsuarioHandler
+      Runtime: nodejs18.x
+      MemorySize: 128
+      Timeout: 100
+      Description: Actualizar usuario
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /usuarios/{id}
+            Method: PUT
+            # CORS will be set globalmente
+
+  # This is a Lambda function config asociado con el endpoint para eliminar un usuario
+  eliminarUsuarioFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/eliminar-usuario.eliminarUsuarioHandler
+      Runtime: nodejs18.x
+      MemorySize: 128
+      Timeout: 100
+      Description: Eliminar usuario
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /usuarios/{id}
+            Method: DELETE
+            # CORS will be set globalmente
   # Each Lambda function is defined by properties:
   # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
 
@@ -510,7 +564,7 @@ Resources:
             RestApiId: !Ref Api
             Path: /inventario/{id}
             Method: DELETE
-            # CORS will be set globally abajo
+            # CORS will be set globalmente
   # Each Lambda function is defined by properties:
   # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
 
@@ -534,14 +588,6 @@ Resources:
             Method: GET
             # CORS will be set globalmente
   # Agrega el recurso global de API Gateway con CORS habilitado para localhost:5173
-  ServerlessRestApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: Prod
-      Cors:
-        AllowOrigin: "'http://localhost:5173'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
   loginFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -560,6 +606,71 @@ Resources:
             Path: /login
             Method: POST
 
+  # Lambda para crear procedimiento de catálogo
+  crearProcedimientoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/crear-procedimiento.crearProcedimientoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Crear procedimiento de catálogo
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /procedimientos
+            Method: POST
+            # CORS will be set globalmente
+
+  actualizarProcedimientoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/actualizar-procedimiento.actualizarProcedimientoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Actualizar procedimiento de catálogo
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /procedimientos/{id}
+            Method: PUT
+            # CORS will be set globalmente
+
+  eliminarProcedimientoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/eliminar-procedimiento.eliminarProcedimientoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Eliminar procedimiento de catálogo
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /procedimientos/{id}
+            Method: DELETE
+            # CORS will be set globalmente
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowOrigin: "'http://localhost:5173'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowMethods: "'OPTIONS,GET,POST,PUT,DELETE'"
 Outputs:
   WebEndpoint:
     Description: "API Gateway endpoint URL for Prod stage"

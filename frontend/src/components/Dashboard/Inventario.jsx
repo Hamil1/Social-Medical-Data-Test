@@ -17,6 +17,8 @@ import {
   TextField,
   IconButton,
   Box,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -120,6 +122,11 @@ const Inventario = () => {
   const [selectedInsumo, setSelectedInsumo] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [alert, setAlert] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
     api
@@ -136,15 +143,26 @@ const Inventario = () => {
     setEditDialogOpen(true);
   };
 
+  const handleCloseAlert = () => setAlert({ ...alert, open: false });
+
   const handleEditSubmit = async (values, { setSubmitting }) => {
     try {
       await api.put(`/inventario/${values.id}`, values);
       setInsumos((prev) =>
         prev.map((i) => (i.id === values.id ? { ...i, ...values } : i))
       );
-      setEditDialogOpen(false);
+      setAlert({
+        open: true,
+        message: "Insumo actualizado exitosamente",
+        severity: "success",
+      });
+      setTimeout(() => setEditDialogOpen(false), 1200);
     } catch {
-      // Manejo de error opcional
+      setAlert({
+        open: true,
+        message: "Error al actualizar insumo",
+        severity: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -155,9 +173,18 @@ const Inventario = () => {
     try {
       await api.delete(`/inventario/${id}`);
       setInsumos((prev) => prev.filter((i) => i.id !== id));
-      setDeleteId(null);
+      setAlert({
+        open: true,
+        message: "Insumo eliminado exitosamente",
+        severity: "success",
+      });
+      setTimeout(() => setDeleteId(null), 1200);
     } catch {
-      // Manejo de error opcional
+      setAlert({
+        open: true,
+        message: "Error al eliminar insumo",
+        severity: "error",
+      });
     } finally {
       setDeleting(false);
     }
@@ -256,6 +283,20 @@ const Inventario = () => {
           </Typography>
         </Box>
       )}
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={2000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alert.severity}
+          sx={{ width: "100%" }}
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

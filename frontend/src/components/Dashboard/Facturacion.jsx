@@ -18,6 +18,8 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -40,6 +42,11 @@ const Facturacion = () => {
   );
   const [generando, setGenerando] = useState(false);
   const [filtro, setFiltro] = useState("pendientes");
+  const [alert, setAlert] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
   const rol = usuario?.rol;
@@ -78,13 +85,28 @@ const Facturacion = () => {
       .finally(() => setLoading(false));
   };
 
+  const handleCloseAlert = () => setAlert({ ...alert, open: false });
+
   const handleMarcarPagada = async (factura) => {
-    await api.put(`/facturas/${factura.id}`, {
-      ...factura,
-      estado_pago: "pagada",
-      fecha_pago: new Date().toISOString().slice(0, 10),
-    });
-    fetchFacturas();
+    try {
+      await api.put(`/facturas/${factura.id}`, {
+        ...factura,
+        estado_pago: "pagada",
+        fecha_pago: new Date().toISOString().slice(0, 10),
+      });
+      setAlert({
+        open: true,
+        message: "Factura marcada como pagada",
+        severity: "success",
+      });
+      fetchFacturas();
+    } catch {
+      setAlert({
+        open: true,
+        message: "Error al marcar como pagada",
+        severity: "error",
+      });
+    }
   };
 
   const handleOpenDialog = () => setOpenDialog(true);
@@ -107,15 +129,24 @@ const Facturacion = () => {
         fecha_realizacion: fechaRealizacion,
         procedimientos_ids: selectedProcedimientos.map((p) => p.id),
       });
+      setAlert({
+        open: true,
+        message: "Factura generada exitosamente",
+        severity: "success",
+      });
       fetchFacturas();
-      setOpenDialog(false);
+      setTimeout(() => setOpenDialog(false), 1200);
       setSelectedPaciente("");
       setSelectedOdontologo("");
       setSelectedProcedimiento("");
       setFechaRealizacion(new Date().toISOString().slice(0, 10));
       setSelectedProcedimientos([]);
     } catch {
-      // Manejo de error opcional
+      setAlert({
+        open: true,
+        message: "Error al generar factura",
+        severity: "error",
+      });
     } finally {
       setGenerando(false);
     }
@@ -134,6 +165,14 @@ const Facturacion = () => {
     doc.text(`Fecha Emisión: ${factura.fecha_emision}`, 20, 75);
     doc.text(`Fecha Pago: ${factura.fecha_pago || "-"}`, 20, 85);
     doc.save(`factura_${factura.id}.pdf`);
+  };
+
+  // Utilidad para formatear fecha a dd/mm/yyyy
+  const formatFecha = (fechaIso) => {
+    if (!fechaIso) return "-";
+    const d = new Date(fechaIso);
+    if (isNaN(d)) return fechaIso;
+    return d.toLocaleDateString("es-MX");
   };
 
   return (
@@ -201,8 +240,8 @@ const Facturacion = () => {
                     <TableCell>{f.paciente_id}</TableCell>
                     <TableCell>{f.monto_total}</TableCell>
                     <TableCell>{f.estado_pago}</TableCell>
-                    <TableCell>{f.fecha_emision}</TableCell>
-                    <TableCell>{f.fecha_pago || "-"}</TableCell>
+                    <TableCell>{formatFecha(f.fecha_emision)}</TableCell>
+                    <TableCell>{formatFecha(f.fecha_pago)}</TableCell>
                     <TableCell>
                       {rol === "facturador" &&
                         f.estado_pago === "pendiente" && (
@@ -332,6 +371,20 @@ const Facturacion = () => {
           </Typography>
         </Box>
       )}
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={2000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alert.severity}
+          sx={{ width: "100%" }}
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

@@ -55,3 +55,11 @@ CREATE TABLE Consultas_Procedimientos (
     notas_clinicas TEXT,
     factura_id INT REFERENCES Facturas(id)
 );
+
+-- Tabla pivote para registrar insumos usados en cada procedimiento realizado
+CREATE TABLE IF NOT EXISTS consultas_procedimientos_insumos (
+    id SERIAL PRIMARY KEY,
+    consulta_procedimiento_id INT NOT NULL REFERENCES Consultas_Procedimientos(id),
+    insumo_id INT NOT NULL REFERENCES Inventario(id),
+    cantidad_utilizada INT NOT NULL
+);

@@ -27,7 +27,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import api from "../../services/api";
-import { Formik, Form } from "formik";
+import { useFormikContext, Formik, Form } from "formik";
 import * as Yup from "yup";
 
 const ProcedimientoSchema = Yup.object().shape({
@@ -132,105 +132,358 @@ const RegistroProcedimientoPacienteDialog = ({
   pacientes,
   procedimientos,
   odontologos,
-}) => (
-  <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-    <DialogTitle>Registrar Procedimiento para Paciente</DialogTitle>
-    <Formik
-      initialValues={{
-        paciente_id: "",
-        procedimiento_id: "",
-        odontologo_id: "",
-        notas_clinicas: "",
-        fecha_realizacion: new Date().toISOString().slice(0, 10),
-      }}
-      validationSchema={RegistroProcedimientoPacienteSchema}
-      onSubmit={onSubmit}
-    >
-      {({ values, handleChange, touched, errors }) => (
-        <Form>
-          <DialogContent>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <TextField
-                select
-                label="Paciente"
-                name="paciente_id"
-                value={values.paciente_id}
-                onChange={handleChange}
-                error={touched.paciente_id && Boolean(errors.paciente_id)}
-                helperText={touched.paciente_id && errors.paciente_id}
-                fullWidth
-              >
-                {pacientes.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.nombre}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Procedimiento"
-                name="procedimiento_id"
-                value={values.procedimiento_id}
-                onChange={handleChange}
-                error={
-                  touched.procedimiento_id && Boolean(errors.procedimiento_id)
+  inventario = [],
+}) => {
+  const [insumosSeleccionados, setInsumosSeleccionados] = React.useState([]);
+  const [cantidadErrores, setCantidadErrores] = React.useState({});
+
+  // Subcomponente para usar useFormikContext y así poder usar useEffect correctamente
+  function InsumosSync({
+    procedimientos,
+    inventario,
+    setInsumosSeleccionados,
+    setCantidadErrores,
+  }) {
+    const { values } = useFormikContext();
+    React.useEffect(() => {
+      if (!values.procedimiento_id) {
+        setInsumosSeleccionados([]);
+        setCantidadErrores({});
+        return;
+      }
+      const proc = procedimientos.find(
+        (p) => String(p.id) === String(values.procedimiento_id)
+      );
+      let insumos = [];
+      if (proc && proc.insumos_necesarios) {
+        if (Array.isArray(proc.insumos_necesarios)) {
+          insumos = proc.insumos_necesarios;
+        } else if (typeof proc.insumos_necesarios === "string") {
+          insumos = proc.insumos_necesarios
+            .split(",")
+            .map((n) => n.trim())
+            .filter(Boolean)
+            .map(
+              (nombre) =>
+                inventario.find((i) => i.nombre_insumo === nombre) || {
+                  nombre_insumo: nombre,
                 }
-                helperText={touched.procedimiento_id && errors.procedimiento_id}
-                fullWidth
+            );
+        }
+        setInsumosSeleccionados(
+          insumos.map((i) => ({ ...i, cantidad_utilizada: 1 }))
+        );
+        setCantidadErrores({});
+      } else {
+        setInsumosSeleccionados([]);
+        setCantidadErrores({});
+      }
+    }, [
+      values.procedimiento_id,
+      procedimientos,
+      inventario,
+      setInsumosSeleccionados,
+      setCantidadErrores,
+    ]);
+    return null;
+  }
+
+  // Validación de cantidades
+  const validarCantidad = (idx, cantidad) => {
+    const insumo = insumosSeleccionados[idx];
+    const inventarioInsumo = inventario.find((i) => i.id === insumo.id);
+    if (inventarioInsumo && cantidad > inventarioInsumo.cantidad_disponible) {
+      setCantidadErrores((prev) => ({ ...prev, [idx]: true }));
+    } else {
+      setCantidadErrores((prev) => ({ ...prev, [idx]: false }));
+    }
+  };
+
+  const algunaCantidadInvalida = Object.values(cantidadErrores).some(Boolean);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Registrar Procedimiento para Paciente</DialogTitle>
+      <Formik
+        initialValues={{
+          paciente_id: "",
+          procedimiento_id: "",
+          odontologo_id: "",
+          notas_clinicas: "",
+          fecha_realizacion: new Date().toISOString().slice(0, 10),
+        }}
+        enableReinitialize
+        validationSchema={RegistroProcedimientoPacienteSchema}
+        onSubmit={(values, formikHelpers) => {
+          onSubmit(
+            {
+              ...values,
+              insumos_utilizados: insumosSeleccionados.map((i) => ({
+                insumo_id: i.id,
+                cantidad_utilizada: i.cantidad_utilizada,
+              })),
+            },
+            formikHelpers
+          );
+        }}
+      >
+        {({ values, handleChange, touched, errors, setFieldValue }) => (
+          <Form>
+            <InsumosSync
+              procedimientos={procedimientos}
+              inventario={inventario}
+              setInsumosSeleccionados={setInsumosSeleccionados}
+              setCantidadErrores={setCantidadErrores}
+            />
+            <DialogContent>
+              <Box display="flex" flexDirection="column" gap={2}>
+                <TextField
+                  select
+                  label="Paciente"
+                  name="paciente_id"
+                  value={values.paciente_id}
+                  onChange={handleChange}
+                  error={touched.paciente_id && Boolean(errors.paciente_id)}
+                  helperText={touched.paciente_id && errors.paciente_id}
+                  fullWidth
+                >
+                  {pacientes.map((p) => (
+                    <MenuItem key={p.id} value={p.id}>
+                      {p.nombre}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  label="Procedimiento"
+                  name="procedimiento_id"
+                  value={values.procedimiento_id}
+                  onChange={handleChange}
+                  error={
+                    touched.procedimiento_id && Boolean(errors.procedimiento_id)
+                  }
+                  helperText={
+                    touched.procedimiento_id && errors.procedimiento_id
+                  }
+                  fullWidth
+                >
+                  {procedimientos.map((proc) => (
+                    <MenuItem key={proc.id} value={proc.id}>
+                      {proc.nombre}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  label="Odontólogo"
+                  name="odontologo_id"
+                  value={values.odontologo_id}
+                  onChange={handleChange}
+                  error={touched.odontologo_id && Boolean(errors.odontologo_id)}
+                  helperText={touched.odontologo_id && errors.odontologo_id}
+                  fullWidth
+                >
+                  {odontologos.map((o) => (
+                    <MenuItem key={o.id} value={o.id}>
+                      {o.nombre}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  label="Notas clínicas"
+                  name="notas_clinicas"
+                  value={values.notas_clinicas}
+                  onChange={handleChange}
+                  fullWidth
+                  multiline
+                  minRows={2}
+                />
+                <TextField
+                  label="Fecha de realización"
+                  name="fecha_realizacion"
+                  type="date"
+                  value={values.fecha_realizacion}
+                  onChange={handleChange}
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                />
+                {insumosSeleccionados.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Insumos utilizados:
+                    </Typography>
+                    <Box
+                      sx={{
+                        backgroundColor: "#f5f7fa",
+                        borderRadius: 2,
+                        p: 2,
+                        boxShadow: 1,
+                        mb: 2,
+                      }}
+                    >
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: "bold",
+                                  backgroundColor: "#e3e8ee",
+                                }}
+                              >
+                                Insumo
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: "bold",
+                                  backgroundColor: "#e3e8ee",
+                                }}
+                              >
+                                Cantidad
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: "bold",
+                                  backgroundColor: "#e3e8ee",
+                                }}
+                              >
+                                Stock disponible
+                              </TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {insumosSeleccionados.map((insumo, idx) => {
+                              console.log("inventario", inventario);
+                              const inventarioInsumo = inventario.find(
+                                (i) => i.id === insumo.id
+                              );
+                              // Usar cantidad_disponible si existe, si no cantidad
+                              let stockOriginal = "-";
+                              if (inventarioInsumo) {
+                                if (
+                                  typeof inventarioInsumo.cantidad_disponible !==
+                                  "undefined"
+                                ) {
+                                  stockOriginal = Number(
+                                    inventarioInsumo.cantidad_disponible
+                                  );
+                                } else if (
+                                  typeof inventarioInsumo.cantidad !==
+                                  "undefined"
+                                ) {
+                                  stockOriginal = Number(
+                                    inventarioInsumo.cantidad
+                                  );
+                                }
+                              }
+                              const cantidadUtilizada =
+                                Number(insumo.cantidad_utilizada) || 0;
+                              const stock =
+                                stockOriginal !== "-" && !isNaN(stockOriginal)
+                                  ? Math.max(
+                                      stockOriginal - cantidadUtilizada,
+                                      0
+                                    )
+                                  : 0;
+                              return (
+                                <TableRow
+                                  key={insumo.id || insumo.nombre_insumo}
+                                >
+                                  <TableCell align="center">
+                                    {insumo.nombre_insumo}
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <TextField
+                                      type="number"
+                                      size="small"
+                                      value={insumo.cantidad_utilizada}
+                                      onChange={(e) => {
+                                        const nuevaLista = [
+                                          ...insumosSeleccionados,
+                                        ];
+                                        nuevaLista[idx].cantidad_utilizada =
+                                          Number(e.target.value);
+                                        setInsumosSeleccionados(nuevaLista);
+                                        validarCantidad(
+                                          idx,
+                                          Number(e.target.value)
+                                        );
+                                      }}
+                                      inputProps={{
+                                        min: 1,
+                                        max:
+                                          stockOriginal !== "-"
+                                            ? stockOriginal
+                                            : undefined,
+                                        style: { textAlign: "center" },
+                                      }}
+                                      sx={{
+                                        width: 80,
+                                        backgroundColor: "#fff",
+                                        borderRadius: 1,
+                                      }}
+                                      error={!!cantidadErrores[idx]}
+                                    />
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <Typography
+                                      sx={{
+                                        fontWeight:
+                                          stock < 5 ? "bold" : "normal",
+                                        color:
+                                          stock < 5 ? "#d32f2f" : "inherit",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      {typeof stock === "number" &&
+                                      !isNaN(stock)
+                                        ? stock
+                                        : 0}
+                                      {stock < 5 && (
+                                        <span
+                                          style={{
+                                            marginLeft: 6,
+                                            fontSize: 18,
+                                          }}
+                                          title="Stock crítico"
+                                        >
+                                          ⚠️
+                                        </span>
+                                      )}
+                                    </Typography>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={onClose}>Cancelar</Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={algunaCantidadInvalida}
               >
-                {procedimientos.map((proc) => (
-                  <MenuItem key={proc.id} value={proc.id}>
-                    {proc.nombre}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Odontólogo"
-                name="odontologo_id"
-                value={values.odontologo_id}
-                onChange={handleChange}
-                error={touched.odontologo_id && Boolean(errors.odontologo_id)}
-                helperText={touched.odontologo_id && errors.odontologo_id}
-                fullWidth
-              >
-                {odontologos.map((o) => (
-                  <MenuItem key={o.id} value={o.id}>
-                    {o.nombre}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Notas clínicas"
-                name="notas_clinicas"
-                value={values.notas_clinicas}
-                onChange={handleChange}
-                fullWidth
-                multiline
-                minRows={2}
-              />
-              <TextField
-                label="Fecha de realización"
-                name="fecha_realizacion"
-                type="date"
-                value={values.fecha_realizacion}
-                onChange={handleChange}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={onClose}>Cancelar</Button>
-            <Button type="submit" variant="contained">
-              Confirmar y guardar
-            </Button>
-          </DialogActions>
-        </Form>
-      )}
-    </Formik>
-  </Dialog>
-);
+                Confirmar y guardar
+              </Button>
+            </DialogActions>
+          </Form>
+        )}
+      </Formik>
+    </Dialog>
+  );
+};
 
 const EditarProcedimientoDialog = ({
   open,
@@ -340,15 +593,111 @@ const EditarConsultaProcedimientoDialog = ({
   procedimientos,
   odontologos,
   onSubmit,
+  inventario = [], // <-- PASA EL INVENTARIO GLOBAL
 }) => {
-  if (!consulta) return null;
+  const [insumosSeleccionados, setInsumosSeleccionados] = React.useState([]);
+  const [cantidadErrores, setCantidadErrores] = React.useState({});
+  const [inventarioEdicion, setInventarioEdicion] = useState([]);
+
+  // Utilidad para comparar arrays de insumos
+  function insumosIguales(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (
+        a[i].id !== b[i].id ||
+        a[i].nombre_insumo !== b[i].nombre_insumo ||
+        a[i].cantidad_utilizada !== b[i].cantidad_utilizada
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Inicializa insumosSeleccionados al abrir el modal o cambiar consulta
+  React.useEffect(() => {
+    if (!open || !consulta) return;
+    let nuevosInsumos = [];
+    if (
+      consulta.insumos_utilizados &&
+      Array.isArray(consulta.insumos_utilizados)
+    ) {
+      nuevosInsumos = consulta.insumos_utilizados.map((iu) => {
+        const inv = inventario.find((i) => i.id === iu.insumo_id);
+        return {
+          id: iu.insumo_id,
+          nombre_insumo: inv
+            ? inv.nombre_insumo
+            : iu.nombre_insumo || iu.insumo_id,
+          cantidad_utilizada: iu.cantidad_utilizada,
+        };
+      });
+    } else {
+      const proc = procedimientos.find(
+        (p) => String(p.id) === String(consulta.procedimiento_id)
+      );
+      if (proc && proc.insumos_necesarios) {
+        if (Array.isArray(proc.insumos_necesarios)) {
+          nuevosInsumos = proc.insumos_necesarios;
+        } else if (typeof proc.insumos_necesarios === "string") {
+          nuevosInsumos = proc.insumos_necesarios
+            .split(",")
+            .map((n) => n.trim())
+            .filter(Boolean)
+            .map(
+              (nombre) =>
+                inventario.find((i) => i.nombre_insumo === nombre) || {
+                  nombre_insumo: nombre,
+                }
+            );
+        }
+        nuevosInsumos = nuevosInsumos.map((i) => ({
+          ...i,
+          cantidad_utilizada: 1,
+        }));
+      }
+    }
+    // Solo actualiza si realmente cambió
+    if (!insumosIguales(insumosSeleccionados, nuevosInsumos)) {
+      setInsumosSeleccionados(nuevosInsumos);
+      setCantidadErrores({});
+    }
+  }, [open, consulta?.id, procedimientos, inventario]);
+
+  // Validación de cantidades
+  const validarCantidad = (idx, cantidad) => {
+    const insumo = insumosSeleccionados[idx];
+    const inventarioInsumo = inventario.find((i) => i.id === insumo.id);
+    if (inventarioInsumo && cantidad > inventarioInsumo.cantidad) {
+      setCantidadErrores((prev) => ({ ...prev, [idx]: true }));
+    } else {
+      setCantidadErrores((prev) => ({ ...prev, [idx]: false }));
+    }
+  };
+  const algunaCantidadInvalida = Object.values(cantidadErrores).some(Boolean);
+
+  const handleEditConsultaProcedimiento = async (consulta) => {
+    // Si el inventario está vacío, hacer fetch
+    if (!insumos || insumos.length === 0) {
+      try {
+        const res = await api.get("/inventario");
+        setInventarioEdicion(res.data);
+      } catch {
+        setInventarioEdicion([]);
+      }
+    } else {
+      setInventarioEdicion(insumos);
+    }
+    setEditConsultaProcedimiento(consulta);
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Editar Procedimiento Realizado</DialogTitle>
       <Formik
         initialValues={{
           ...consulta,
-          fecha_realizacion: consulta.fecha_realizacion?.slice(0, 10) || "",
+          fecha_realizacion: consulta?.fecha_realizacion?.slice(0, 10) || "",
         }}
         enableReinitialize
         validationSchema={Yup.object().shape({
@@ -360,7 +709,18 @@ const EditarConsultaProcedimientoDialog = ({
           notas_clinicas: Yup.string(),
           fecha_realizacion: Yup.string().required("Fecha requerida"),
         })}
-        onSubmit={onSubmit}
+        onSubmit={(values, formikHelpers) => {
+          onSubmit(
+            {
+              ...values,
+              insumos_utilizados: insumosSeleccionados.map((i) => ({
+                insumo_id: i.id,
+                cantidad_utilizada: i.cantidad_utilizada,
+              })),
+            },
+            formikHelpers
+          );
+        }}
       >
         {({ values, handleChange, touched, errors }) => (
           <Form>
@@ -443,11 +803,175 @@ const EditarConsultaProcedimientoDialog = ({
                     touched.fecha_realizacion && errors.fecha_realizacion
                   }
                 />
+                {insumosSeleccionados.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Insumos utilizados:
+                    </Typography>
+                    <Box
+                      sx={{
+                        backgroundColor: "#f5f7fa",
+                        borderRadius: 2,
+                        p: 2,
+                        boxShadow: 1,
+                        mb: 2,
+                      }}
+                    >
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: "bold",
+                                  backgroundColor: "#e3e8ee",
+                                }}
+                              >
+                                Insumo
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: "bold",
+                                  backgroundColor: "#e3e8ee",
+                                }}
+                              >
+                                Cantidad
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: "bold",
+                                  backgroundColor: "#e3e8ee",
+                                }}
+                              >
+                                Stock disponible
+                              </TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {insumosSeleccionados.map((insumo, idx) => {
+                              console.log("inventario", inventario);
+                              const inventarioInsumo = inventario.find(
+                                (i) => i.id === insumo.id
+                              );
+                              // Usar cantidad_disponible si existe, si no cantidad
+                              let stockOriginal = "-";
+                              if (inventarioInsumo) {
+                                if (
+                                  typeof inventarioInsumo.cantidad_disponible !==
+                                  "undefined"
+                                ) {
+                                  stockOriginal = Number(
+                                    inventarioInsumo.cantidad_disponible
+                                  );
+                                } else if (
+                                  typeof inventarioInsumo.cantidad !==
+                                  "undefined"
+                                ) {
+                                  stockOriginal = Number(
+                                    inventarioInsumo.cantidad
+                                  );
+                                }
+                              }
+                              const cantidadUtilizada =
+                                Number(insumo.cantidad_utilizada) || 0;
+                              const stock =
+                                stockOriginal !== "-" && !isNaN(stockOriginal)
+                                  ? Math.max(
+                                      stockOriginal - cantidadUtilizada,
+                                      0
+                                    )
+                                  : 0;
+                              return (
+                                <TableRow
+                                  key={insumo.id || insumo.nombre_insumo}
+                                >
+                                  <TableCell align="center">
+                                    {insumo.nombre_insumo}
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <TextField
+                                      disabled
+                                      type="number"
+                                      size="small"
+                                      value={insumo.cantidad_utilizada}
+                                      onChange={(e) => {
+                                        const nuevaLista = [
+                                          ...insumosSeleccionados,
+                                        ];
+                                        nuevaLista[idx].cantidad_utilizada =
+                                          Number(e.target.value);
+                                        setInsumosSeleccionados(nuevaLista);
+                                        validarCantidad(
+                                          idx,
+                                          Number(e.target.value)
+                                        );
+                                      }}
+                                      inputProps={{
+                                        min: 1,
+                                        max:
+                                          stockOriginal !== "-"
+                                            ? stockOriginal
+                                            : undefined,
+                                        style: { textAlign: "center" },
+                                      }}
+                                      sx={{
+                                        width: 80,
+                                        backgroundColor: "#fff",
+                                        borderRadius: 1,
+                                      }}
+                                      error={!!cantidadErrores[idx]}
+                                    />
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <Typography
+                                      sx={{
+                                        fontWeight:
+                                          stock < 5 ? "bold" : "normal",
+                                        color:
+                                          stock < 5 ? "#d32f2f" : "inherit",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      {typeof stock === "number" &&
+                                      !isNaN(stock)
+                                        ? stock
+                                        : 0}
+                                      {stock < 5 && (
+                                        <span
+                                          style={{
+                                            marginLeft: 6,
+                                            fontSize: 18,
+                                          }}
+                                          title="Stock crítico"
+                                        >
+                                          ⚠️
+                                        </span>
+                                      )}
+                                    </Typography>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  </Box>
+                )}
               </Box>
             </DialogContent>
             <DialogActions>
               <Button onClick={onClose}>Cancelar</Button>
-              <Button type="submit" variant="contained">
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={algunaCantidadInvalida}
+              >
                 Guardar cambios
               </Button>
             </DialogActions>
@@ -478,6 +1002,7 @@ const Procedimientos = () => {
   const [editProcedimiento, setEditProcedimiento] = useState(null);
   const [editConsultaProcedimiento, setEditConsultaProcedimiento] =
     useState(null);
+  const [inventarioEdicion, setInventarioEdicion] = useState([]);
 
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
   const rol = usuario?.rol;
@@ -625,7 +1150,22 @@ const Procedimientos = () => {
   };
 
   const handleEditConsultaProcedimiento = (consulta) => {
-    setEditConsultaProcedimiento(consulta);
+    // Si el inventario está vacío, hacer fetch
+    if (!insumos || insumos.length === 0) {
+      api
+        .get("/inventario")
+        .then((res) => {
+          setInventarioEdicion(res.data);
+          setEditConsultaProcedimiento(consulta);
+        })
+        .catch(() => {
+          setInventarioEdicion([]);
+          setEditConsultaProcedimiento(consulta);
+        });
+    } else {
+      setInventarioEdicion(insumos);
+      setEditConsultaProcedimiento(consulta);
+    }
   };
 
   const handleDeleteConsultaProcedimiento = async (id) => {
@@ -872,6 +1412,7 @@ const Procedimientos = () => {
         pacientes={pacientes}
         procedimientos={procedimientosList}
         odontologos={odontologos}
+        inventario={inventarioEdicion}
         onSubmit={async (values, { setSubmitting }) => {
           try {
             await api.put(`/consultas-procedimientos/${values.id}`, {
@@ -910,6 +1451,7 @@ const Procedimientos = () => {
               procedimiento_id: Number(values.procedimiento_id),
               odontologo_id: Number(values.odontologo_id),
               fecha_realizacion: values.fecha_realizacion,
+              insumos_utilizados: values.insumos_utilizados, // Asegura que se envía el array
             });
             setAlert({
               open: true,
@@ -933,6 +1475,7 @@ const Procedimientos = () => {
         pacientes={pacientes}
         procedimientos={procedimientosList}
         odontologos={odontologos}
+        inventario={insumos} // <-- PASA EL INVENTARIO GLOBAL
       />
       {!(rol === "administrador" || rol === "asistente") && (
         <RegistroProcedimientoDialog

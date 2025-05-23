@@ -119,7 +119,6 @@ const DashboardLayout = () => {
         <List>
           {visibleMenuItems.map((item) => (
             <ListItem
-              button
               key={item.text}
               onClick={() => navigate(item.path)}
               sx={{ cursor: "pointer" }}

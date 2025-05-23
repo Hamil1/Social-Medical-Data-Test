@@ -663,6 +663,42 @@ Resources:
             Path: /procedimientos/{id}
             Method: DELETE
             # CORS will be set globalmente
+  actualizarConsultaProcedimientoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/actualizar-consulta-procedimiento.actualizarConsultaProcedimientoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Actualizar consulta/procedimiento realizado
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /consultas-procedimientos/{id}
+            Method: PUT
+            # CORS will be set globalmente
+  eliminarConsultaProcedimientoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/eliminar-consulta-procedimiento.eliminarConsultaProcedimientoHandler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Eliminar consulta/procedimiento realizado
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /consultas-procedimientos/{id}
+            Method: DELETE
+            # CORS will be set globalmente
   ServerlessRestApi:
     Type: AWS::Serverless::Api
     Properties:

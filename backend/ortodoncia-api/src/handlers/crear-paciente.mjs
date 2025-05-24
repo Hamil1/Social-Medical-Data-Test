@@ -47,7 +47,6 @@ export const crearPacienteHandler = async (event) => {
     email,
     direccion,
     historial_clinico,
-    fecha_registro,
     odontologo_id,
   } = body;
   if (
@@ -56,7 +55,6 @@ export const crearPacienteHandler = async (event) => {
     !telefono ||
     !email ||
     !direccion ||
-    !fecha_registro ||
     !odontologo_id
   ) {
     return {
@@ -67,7 +65,7 @@ export const crearPacienteHandler = async (event) => {
   try {
     const result = await query(
       `INSERT INTO pacientes (nombre, documento_identidad, telefono, email, direccion, historial_clinico, fecha_registro, odontologo_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, $7) RETURNING *`,
       [
         nombre,
         documento_identidad,
@@ -75,7 +73,6 @@ export const crearPacienteHandler = async (event) => {
         email,
         direccion,
         historial_clinico || null,
-        fecha_registro,
         odontologo_id,
       ]
     );

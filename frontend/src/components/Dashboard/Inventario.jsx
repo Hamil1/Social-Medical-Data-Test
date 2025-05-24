@@ -25,6 +25,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import api from "../../services/api";
+import MenuItem from "@mui/material/MenuItem";
 
 const InsumoSchema = Yup.object().shape({
   nombre_insumo: Yup.string().required("Requerido"),
@@ -34,9 +35,23 @@ const InsumoSchema = Yup.object().shape({
   costo_unitario: Yup.number().required("Requerido").min(0),
 });
 
+const UNIDADES_MEDIDA = [
+  "pieza",
+  "caja",
+  "frasco",
+  "tubo",
+  "paquete",
+  "ml",
+  "g",
+  "ampolla",
+  "kit",
+];
+
 const EditInsumoDialog = ({ open, onClose, initialValues, onSubmit }) => (
   <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-    <DialogTitle>Editar Insumo</DialogTitle>
+    <DialogTitle>
+      {initialValues?.id ? "Editar Insumo" : "Agregar Insumo"}
+    </DialogTitle>
     <Formik
       initialValues={initialValues}
       validationSchema={InsumoSchema}
@@ -68,6 +83,7 @@ const EditInsumoDialog = ({ open, onClose, initialValues, onSubmit }) => (
               margin="normal"
             />
             <TextField
+              select
               label="Unidad Medida"
               name="unidad_medida"
               value={values.unidad_medida}
@@ -76,7 +92,13 @@ const EditInsumoDialog = ({ open, onClose, initialValues, onSubmit }) => (
               helperText={touched.unidad_medida && errors.unidad_medida}
               fullWidth
               margin="normal"
-            />
+            >
+              {UNIDADES_MEDIDA.map((u) => (
+                <MenuItem key={u} value={u}>
+                  {u}
+                </MenuItem>
+              ))}
+            </TextField>
             <TextField
               label="Fecha de Vencimiento"
               name="fecha_vencimiento"
@@ -120,6 +142,7 @@ const Inventario = () => {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedInsumo, setSelectedInsumo] = useState(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [alert, setAlert] = useState({
@@ -143,6 +166,11 @@ const Inventario = () => {
     setEditDialogOpen(true);
   };
 
+  const handleCreate = () => {
+    setSelectedInsumo(null);
+    setCreateDialogOpen(true);
+  };
+
   const handleCloseAlert = () => setAlert({ ...alert, open: false });
 
   const handleEditSubmit = async (values, { setSubmitting }) => {
@@ -161,6 +189,28 @@ const Inventario = () => {
       setAlert({
         open: true,
         message: "Error al actualizar insumo",
+        severity: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateSubmit = async (values, { setSubmitting, resetForm }) => {
+    try {
+      const res = await api.post("/inventario", values);
+      setInsumos((prev) => [...prev, res.data]);
+      setAlert({
+        open: true,
+        message: "Insumo agregado exitosamente",
+        severity: "success",
+      });
+      setTimeout(() => setCreateDialogOpen(false), 1200);
+      resetForm();
+    } catch {
+      setAlert({
+        open: true,
+        message: "Error al agregar insumo",
         severity: "error",
       });
     } finally {
@@ -190,6 +240,23 @@ const Inventario = () => {
     }
   };
 
+  // Utilidad para formatear fecha a dd/mm/yyyy sin desfase de zona horaria
+  const formatFecha = (fechaIso) => {
+    if (!fechaIso) return "-";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaIso)) {
+      const [y, m, d] = fechaIso.split("-");
+      return `${d}/${m}/${y}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}T/.test(fechaIso)) {
+      const [date] = fechaIso.split("T");
+      const [y, m, d] = date.split("-");
+      return `${d}/${m}/${y}`;
+    }
+    const d = new Date(fechaIso);
+    if (isNaN(d)) return fechaIso;
+    return d.toLocaleDateString("es-MX");
+  };
+
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
   const rol = usuario?.rol;
 
@@ -198,6 +265,16 @@ const Inventario = () => {
       <Typography variant="h4" gutterBottom>
         Inventario de Insumos
       </Typography>
+      {rol !== "odontologo" && (
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ mb: 2 }}
+          onClick={handleCreate}
+        >
+          Agregar insumo
+        </Button>
+      )}
       {loading ? (
         <CircularProgress />
       ) : (
@@ -222,8 +299,15 @@ const Inventario = () => {
                   <TableCell>{i.nombre_insumo}</TableCell>
                   <TableCell>{i.cantidad}</TableCell>
                   <TableCell>{i.unidad_medida}</TableCell>
-                  <TableCell>{i.fecha_vencimiento}</TableCell>
-                  <TableCell>{i.costo_unitario}</TableCell>
+                  <TableCell>{formatFecha(i.fecha_vencimiento)}</TableCell>
+                  <TableCell>
+                    {i.costo_unitario != null
+                      ? Number(i.costo_unitario).toLocaleString("es-MX", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : "-"}
+                  </TableCell>
                   <TableCell align="right">
                     {rol !== "odontologo" && (
                       <>
@@ -252,8 +336,49 @@ const Inventario = () => {
         <EditInsumoDialog
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
-          initialValues={selectedInsumo || {}}
+          initialValues={
+            selectedInsumo
+              ? {
+                  ...selectedInsumo,
+                  fecha_vencimiento: selectedInsumo.fecha_vencimiento
+                    ? (() => {
+                        const fv = selectedInsumo.fecha_vencimiento;
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(fv)) return fv;
+                        if (/^\d{2}\/\d{2}\/\d{4}$/.test(fv)) {
+                          // dd/mm/yyyy -> yyyy-mm-dd
+                          const [d, m, y] = fv.split("/");
+                          return `${y}-${m}-${d}`;
+                        }
+                        if (/^\d{4}-\d{2}-\d{2}T/.test(fv)) {
+                          // yyyy-mm-ddTHH:mm:ssZ -> yyyy-mm-dd
+                          return fv.split("T")[0];
+                        }
+                        // fallback: intentar parsear como Date
+                        const d = new Date(fv);
+                        if (!isNaN(d)) {
+                          return d.toISOString().slice(0, 10);
+                        }
+                        return "";
+                      })()
+                    : "",
+                }
+              : {}
+          }
           onSubmit={handleEditSubmit}
+        />
+      )}
+      {rol !== "odontologo" && (
+        <EditInsumoDialog
+          open={createDialogOpen}
+          onClose={() => setCreateDialogOpen(false)}
+          initialValues={{
+            nombre_insumo: "",
+            cantidad: 0,
+            unidad_medida: "",
+            fecha_vencimiento: "",
+            costo_unitario: 0,
+          }}
+          onSubmit={handleCreateSubmit}
         />
       )}
       {/* Diálogo de eliminación solo para roles permitidos */}

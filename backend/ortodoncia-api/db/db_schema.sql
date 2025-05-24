@@ -53,7 +53,8 @@ CREATE TABLE Consultas_Procedimientos (
     odontologo_id INT NOT NULL REFERENCES Usuarios(id),
     fecha_realizacion DATE NOT NULL,
     notas_clinicas TEXT,
-    factura_id INT REFERENCES Facturas(id)
+    factura_id INT REFERENCES Facturas(id),
+    estatus VARCHAR(20)
 );
 
 -- Tabla pivote para registrar insumos usados en cada procedimiento realizado

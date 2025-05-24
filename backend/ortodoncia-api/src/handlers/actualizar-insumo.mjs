@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { query } from "../db.mjs";
 const MOCKS_DIR = "/var/task/src/mocks/";
 const TMP_DIR = "/tmp/";
 function getTmpPath(filename) {
@@ -40,23 +41,39 @@ export const actualizarInsumoHandler = async (event) => {
       body: JSON.stringify({ error: "JSON inválido en el body" }),
     };
   }
-  let inventario = [];
+  const {
+    nombre_insumo,
+    cantidad,
+    unidad_medida,
+    fecha_vencimiento,
+    costo_unitario,
+  } = body;
   try {
-    inventario = await readOrInitJson("inventario.json");
-  } catch {
+    const result = await query(
+      `UPDATE inventario SET nombre_insumo = $1, cantidad = $2, unidad_medida = $3, fecha_vencimiento = $4, costo_unitario = $5 WHERE id = $6 RETURNING *`,
+      [
+        nombre_insumo,
+        cantidad,
+        unidad_medida,
+        fecha_vencimiento,
+        costo_unitario,
+        id,
+      ]
+    );
+    if (result.rowCount === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Insumo no encontrado" }),
+      };
+    }
+    return { statusCode: 200, body: JSON.stringify(result.rows[0]) };
+  } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo inventario" }),
+      body: JSON.stringify({
+        error: "Error actualizando insumo",
+        details: err.message,
+      }),
     };
   }
-  const idx = inventario.findIndex((i) => i.id === id);
-  if (idx === -1) {
-    return {
-      statusCode: 404,
-      body: JSON.stringify({ error: "Insumo no encontrado" }),
-    };
-  }
-  inventario[idx] = { ...inventario[idx], ...body, id };
-  await writeJson("inventario.json", inventario);
-  return { statusCode: 200, body: JSON.stringify(inventario[idx]) };
 };

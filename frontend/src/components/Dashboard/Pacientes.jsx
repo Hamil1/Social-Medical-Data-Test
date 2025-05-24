@@ -69,15 +69,21 @@ const Pacientes = () => {
 
   const handleDialogSubmit = async (values, { setSubmitting }) => {
     try {
+      // Mapear historial -> historial_clinico y enviar null si está vacío
+      const payload = {
+        ...values,
+        historial_clinico: values.historial?.trim() ? values.historial : null,
+      };
+      delete payload.historial;
       if (editPaciente) {
-        await api.put(`/pacientes/${editPaciente.id}`, values);
+        await api.put(`/pacientes/${editPaciente.id}`, payload);
         setAlert({
           open: true,
           message: "Paciente actualizado exitosamente",
           severity: "success",
         });
       } else {
-        await api.post("/pacientes", values);
+        await api.post("/pacientes", payload);
         setAlert({
           open: true,
           message: "Paciente creado exitosamente",

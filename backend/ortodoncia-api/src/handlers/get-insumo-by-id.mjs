@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { query } from "../db.mjs";
 const MOCKS_DIR = "/var/task/src/mocks/";
 const TMP_DIR = "/tmp/";
 function getTmpPath(filename) {
@@ -27,21 +28,22 @@ export const getInsumoByIdHandler = async (event) => {
     );
   }
   const id = parseInt(event.pathParameters.id, 10);
-  let inventario = [];
   try {
-    inventario = await readOrInitJson("inventario.json");
-  } catch {
+    const result = await query(`SELECT * FROM inventario WHERE id = $1`, [id]);
+    if (result.rows.length === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Insumo no encontrado" }),
+      };
+    }
+    return { statusCode: 200, body: JSON.stringify(result.rows[0]) };
+  } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo inventario" }),
+      body: JSON.stringify({
+        error: "Error consultando insumo",
+        details: err.message,
+      }),
     };
   }
-  const insumo = inventario.find((i) => i.id === id);
-  if (!insumo) {
-    return {
-      statusCode: 404,
-      body: JSON.stringify({ error: "Insumo no encontrado" }),
-    };
-  }
-  return { statusCode: 200, body: JSON.stringify(insumo) };
 };

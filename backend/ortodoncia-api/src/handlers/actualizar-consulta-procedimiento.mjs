@@ -18,6 +18,7 @@ export const actualizarConsultaProcedimientoHandler = async (event) => {
       fecha_realizacion,
       notas_clinicas,
       factura_id,
+      estatus,
       insumos_utilizados, // [{insumo_id, cantidad_utilizada}, ...]
     } = JSON.parse(event.body);
 
@@ -29,8 +30,9 @@ export const actualizarConsultaProcedimientoHandler = async (event) => {
            odontologo_id = $3,
            fecha_realizacion = $4,
            notas_clinicas = $5,
-           factura_id = $6
-       WHERE id = $7
+           factura_id = $6,
+           estatus = COALESCE($7, estatus)
+       WHERE id = $8
        RETURNING *`,
       [
         paciente_id,
@@ -39,6 +41,7 @@ export const actualizarConsultaProcedimientoHandler = async (event) => {
         fecha_realizacion,
         notas_clinicas,
         factura_id,
+        estatus,
         id,
       ]
     );

@@ -2,14 +2,20 @@ import { query } from "../db.mjs";
 
 export const getAllConsultasProcedimientosHandler = async (event) => {
   if (event.httpMethod !== "GET") {
-    throw new Error(
-      `getAllConsultasProcedimientos solo acepta el método GET, intentaste: ${event.httpMethod}`
-    );
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Método no permitido" }),
+    };
   }
   try {
-    const result = await query("SELECT * FROM consultas_procedimientos");
-    // Para cada consulta, obtener sus insumos utilizados con cantidad
-    for (const consulta of result.rows) {
+    // Trae todos los procedimientos realizados, incluyendo el precio del procedimiento
+    const { rows } = await query(
+      `SELECT cp.*, p.precio
+       FROM Consultas_Procedimientos cp
+       JOIN Procedimientos p ON cp.procedimiento_id = p.id`
+    );
+    // Para cada consulta, obtener sus insumos utilizados con cantidad y nombre
+    for (const consulta of rows) {
       const insumos = await query(
         `SELECT cpi.insumo_id, i.nombre_insumo, cpi.cantidad_utilizada
          FROM consultas_procedimientos_insumos cpi
@@ -21,13 +27,13 @@ export const getAllConsultasProcedimientosHandler = async (event) => {
     }
     return {
       statusCode: 200,
-      body: JSON.stringify(result.rows),
+      body: JSON.stringify(rows),
     };
   } catch (err) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Error consultando consultas_procedimientos",
+        error: "Error al obtener procedimientos realizados",
         details: err.message,
       }),
     };

@@ -42,9 +42,17 @@ const PacienteFormDialog = ({
         {({ values, handleChange, touched, errors }) => (
           <Form>
             <DialogContent>
+              <Box mb={2}>
+                <span style={{ color: "red", fontWeight: 500 }}>*</span> Campos
+                obligatorios
+              </Box>
               <Box display="flex" flexDirection="column" gap={2}>
                 <TextField
-                  label="Nombre completo"
+                  label={
+                    <>
+                      <span style={{ color: "red" }}>*</span> Nombre completo
+                    </>
+                  }
                   name="nombre"
                   value={values.nombre}
                   onChange={handleChange}
@@ -53,7 +61,11 @@ const PacienteFormDialog = ({
                   fullWidth
                 />
                 <TextField
-                  label="Cédula / DNI"
+                  label={
+                    <>
+                      <span style={{ color: "red" }}>*</span> Cédula / DNI
+                    </>
+                  }
                   name="documento_identidad"
                   value={values.documento_identidad}
                   onChange={handleChange}
@@ -67,7 +79,11 @@ const PacienteFormDialog = ({
                   fullWidth
                 />
                 <TextField
-                  label="Teléfono"
+                  label={
+                    <>
+                      <span style={{ color: "red" }}>*</span> Teléfono
+                    </>
+                  }
                   name="telefono"
                   value={values.telefono}
                   onChange={handleChange}
@@ -76,7 +92,11 @@ const PacienteFormDialog = ({
                   fullWidth
                 />
                 <TextField
-                  label="Email"
+                  label={
+                    <>
+                      <span style={{ color: "red" }}>*</span> Email
+                    </>
+                  }
                   name="email"
                   value={values.email}
                   onChange={handleChange}
@@ -85,7 +105,11 @@ const PacienteFormDialog = ({
                   fullWidth
                 />
                 <TextField
-                  label="Dirección"
+                  label={
+                    <>
+                      <span style={{ color: "red" }}>*</span> Dirección
+                    </>
+                  }
                   name="direccion"
                   value={values.direccion}
                   onChange={handleChange}
@@ -106,7 +130,12 @@ const PacienteFormDialog = ({
                 />
                 <TextField
                   select
-                  label="Odontólogo asignado"
+                  label={
+                    <>
+                      <span style={{ color: "red" }}>*</span> Odontólogo
+                      asignado
+                    </>
+                  }
                   name="odontologo_id"
                   value={values.odontologo_id || ""}
                   onChange={handleChange}

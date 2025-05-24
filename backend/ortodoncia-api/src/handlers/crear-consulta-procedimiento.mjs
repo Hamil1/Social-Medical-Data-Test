@@ -97,14 +97,15 @@ export const crearConsultaProcedimientoHandler = async (event) => {
 
     // 3. Insertar la consulta/procedimiento realizado
     const result = await query(
-      `INSERT INTO consultas_procedimientos (paciente_id, procedimiento_id, odontologo_id, fecha_realizacion, notas_clinicas)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      `INSERT INTO consultas_procedimientos (paciente_id, procedimiento_id, odontologo_id, fecha_realizacion, notas_clinicas, estatus)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [
         paciente_id,
         procedimiento_id,
         odontologo_id,
         fecha_realizacion,
         notas_clinicas || null,
+        "pendiente",
       ]
     );
 
@@ -119,38 +120,11 @@ export const crearConsultaProcedimientoHandler = async (event) => {
       }
     }
 
-    // 4. Facturación automática: buscar factura pendiente o crear nueva
-    let factura;
-    const facturaRes = await query(
-      `SELECT * FROM facturas WHERE paciente_id = $1 AND estado_pago = 'pendiente' LIMIT 1`,
-      [paciente_id]
-    );
-    if (facturaRes.rows.length) {
-      // Actualizar monto_total
-      factura = facturaRes.rows[0];
-      await query(
-        `UPDATE facturas SET monto_total = monto_total + $1 WHERE id = $2`,
-        [precioProcedimiento, factura.id]
-      );
-    } else {
-      // Crear nueva factura
-      const nuevaFacturaRes = await query(
-        `INSERT INTO facturas (paciente_id, monto_total, estado_pago, fecha_emision) VALUES ($1, $2, 'pendiente', $3) RETURNING *`,
-        [paciente_id, precioProcedimiento, fecha_realizacion]
-      );
-      factura = nuevaFacturaRes.rows[0];
-    }
-    // Asociar la factura a la consulta recién creada
-    await query(
-      `UPDATE consultas_procedimientos SET factura_id = $1 WHERE id = $2`,
-      [factura.id, result.rows[0].id]
-    );
-
+    // Elimina la lógica de facturación automática
     return {
       statusCode: 201,
       body: JSON.stringify({
         consulta: result.rows[0],
-        factura,
         alerta_stock:
           insumos_alerta.length > 0
             ? `Stock bajo para: ${insumos_alerta.join(", ")}`

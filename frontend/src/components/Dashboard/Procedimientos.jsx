@@ -167,7 +167,7 @@ function InsumosSync({
           );
           return {
             ...i,
-            cantidad_utilizada: previo?.cantidad_utilizada ?? 1,
+            cantidad_utilizada: previo?.cantidad_utilizada ?? 1, // Siempre inicia en 1
           };
         });
       });
@@ -214,7 +214,7 @@ const RegistroProcedimientoPacienteDialog = ({
           procedimiento_id: "",
           odontologo_id: "",
           notas_clinicas: "",
-          fecha_realizacion: new Date().toISOString().slice(0, 10),
+          fecha_realizacion: open ? new Date().toISOString().slice(0, 10) : "",
         }}
         enableReinitialize
         validationSchema={RegistroProcedimientoPacienteSchema}
@@ -405,7 +405,7 @@ const RegistroProcedimientoPacienteDialog = ({
                                       value={insumo.cantidad_utilizada}
                                       onChange={(e) => {
                                         const value = Number(e.target.value);
-                                        if (isNaN(value) || value < 1) return; // Evita valores inválidos
+                                        if (isNaN(value) || value < 1) return; // min=1 para que siempre descuente
                                         const nuevaLista = [
                                           ...insumosSeleccionados,
                                         ];
@@ -423,7 +423,7 @@ const RegistroProcedimientoPacienteDialog = ({
                                             ? stockOriginal
                                             : undefined,
                                         style: { textAlign: "center" },
-                                        step: 1, // Asegura que las flechas sumen/restan de a 1
+                                        step: 1,
                                       }}
                                       sx={{
                                         width: 80,
@@ -951,7 +951,10 @@ const EditarConsultaProcedimientoDialog = ({
                         textAlign: "center",
                       }}
                     >
-                      No es recomendable editar los Procedimientos realizados a los pacientes, ya que esto puede afectar el historial clínico. Si es necesario realizar cambios, se recomienda crear un nuevo procedimiento.
+                      No es recomendable editar los Procedimientos realizados a
+                      los pacientes, ya que esto puede afectar el historial
+                      clínico. Si es necesario realizar cambios, se recomienda
+                      crear un nuevo procedimiento.
                     </Typography>
                   </Box>
                 )}
@@ -1113,7 +1116,6 @@ const Procedimientos = () => {
 
   const handleOpenDialogPaciente = async () => {
     const res = await api.get("/procedimientos");
-    console.log(res.data);
     setProcedimientosList(res.data);
     setOpenDialogPaciente(true);
   };
@@ -1229,7 +1231,14 @@ const Procedimientos = () => {
                     {procedimientos.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell>{p.nombre}</TableCell>
-                        <TableCell>{p.precio}</TableCell>
+                        <TableCell>
+                          {p.precio != null
+                            ? Number(p.precio).toLocaleString("es-MX", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "-"}
+                        </TableCell>
                         <TableCell>{p.descripcion}</TableCell>
                         {rol === "administrador" && (
                           <TableCell>
@@ -1308,13 +1317,12 @@ const Procedimientos = () => {
                 <TableBody>
                   {consultasProcedimientos
                     .filter((c) => {
-                      const estatus =
-                        c.estatus ||
-                        (c.factura_id
-                          ? c.estatus === "pagado"
-                            ? "pagado"
-                            : "facturado"
-                          : "pendiente");
+                      let estatus = "pendiente";
+                      if (c.estado_factura === "pagado") {
+                        estatus = "pagado";
+                      } else if (c.factura_id) {
+                        estatus = "facturado";
+                      }
                       if (filtroEstatus === "todos") return true;
                       return estatus === filtroEstatus;
                     })
@@ -1328,13 +1336,12 @@ const Procedimientos = () => {
                       const odontologo = odontologos.find(
                         (o) => o.id === c.odontologo_id
                       );
-                      const estatus =
-                        c.estatus ||
-                        (c.factura_id
-                          ? c.estatus === "pagado"
-                            ? "pagado"
-                            : "facturado"
-                          : "pendiente");
+                      let estatus = "pendiente";
+                      if (c.estado_factura === "pagado") {
+                        estatus = "pagado";
+                      } else if (c.factura_id) {
+                        estatus = "facturado";
+                      }
                       return (
                         <TableRow key={c.id}>
                           <TableCell>

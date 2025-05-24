@@ -17,6 +17,12 @@ export const eliminarConsultaProcedimientoHandler = async (event) => {
     };
   }
   try {
+    // Eliminar primero los insumos asociados (detalle)
+    await query(
+      "DELETE FROM consultas_procedimientos_insumos WHERE consulta_procedimiento_id = $1",
+      [id]
+    );
+    // Luego eliminar el procedimiento principal
     const result = await query(
       "DELETE FROM consultas_procedimientos WHERE id = $1 RETURNING *",
       [id]

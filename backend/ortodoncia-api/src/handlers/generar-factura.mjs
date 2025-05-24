@@ -1,29 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
-const MOCKS_DIR = "/var/task/src/mocks/";
-const TMP_DIR = "/tmp/";
-function getTmpPath(filename) {
-  return path.join(TMP_DIR, filename);
-}
-function getMockPath(filename) {
-  return path.join(MOCKS_DIR, filename);
-}
-async function readOrInitJson(filename) {
-  const tmpPath = getTmpPath(filename);
-  try {
-    const data = await fs.readFile(tmpPath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    const mockPath = getMockPath(filename);
-    const data = await fs.readFile(mockPath, "utf-8");
-    await fs.writeFile(tmpPath, data);
-    return JSON.parse(data);
-  }
-}
-async function writeJson(filename, data) {
-  const tmpPath = getTmpPath(filename);
-  await fs.writeFile(tmpPath, JSON.stringify(data, null, 2));
-}
+import { query } from "../db.mjs";
+
 // Generar factura desde procedimientos realizados
 export const generarFacturaHandler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -53,56 +29,51 @@ export const generarFacturaHandler = async (event) => {
       }),
     };
   }
-  let facturas = [],
-    consultas = [],
-    procedimientos = [];
   try {
-    facturas = await readOrInitJson("facturas.json");
-    consultas = await readOrInitJson("consultas_procedimientos.json");
-    procedimientos = await readOrInitJson("procedimientos.json");
-  } catch {
+    // 1. Obtener los procedimientos realizados pendientes y seleccionados
+    const { rows: consultas } = await query(
+      `SELECT cp.id, cp.procedimiento_id, p.precio
+       FROM Consultas_Procedimientos cp
+       JOIN Procedimientos p ON cp.procedimiento_id = p.id
+       WHERE cp.paciente_id = $1
+         AND cp.id = ANY($2)
+         AND cp.factura_id IS NULL`,
+      [paciente_id, procedimientos_ids]
+    );
+    if (!consultas.length) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "No hay procedimientos válidos para facturar",
+        }),
+      };
+    }
+    // 2. Calcular monto total
+    const monto_total = consultas.reduce((sum, c) => sum + Number(c.precio), 0);
+    // 3. Crear la factura
+    const { rows: facturaRows } = await query(
+      `INSERT INTO Facturas (paciente_id, monto_total, estado_pago, fecha_emision)
+       VALUES ($1, $2, 'pendiente', CURRENT_DATE)
+       RETURNING *`,
+      [paciente_id, monto_total]
+    );
+    const factura = facturaRows[0];
+    // 4. Actualizar los procedimientos realizados para asociarlos a la factura y marcar como facturado
+    await query(
+      `UPDATE Consultas_Procedimientos SET factura_id = $1, estatus = 'facturado' WHERE id = ANY($2)`,
+      [factura.id, procedimientos_ids]
+    );
+    return {
+      statusCode: 201,
+      body: JSON.stringify(factura),
+    };
+  } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error leyendo archivos de datos" }),
-    };
-  }
-  // Buscar solo los procedimientos seleccionados y pendientes
-  const consultasSeleccionadas = consultas.filter(
-    (c) =>
-      procedimientos_ids.includes(c.id) &&
-      c.paciente_id === paciente_id &&
-      !c.factura_id
-  );
-  if (!consultasSeleccionadas.length) {
-    return {
-      statusCode: 400,
       body: JSON.stringify({
-        error: "No hay procedimientos válidos para facturar",
+        error: "Error al generar factura",
+        details: err.message,
       }),
     };
   }
-  // Calcular monto total
-  let monto_total = 0;
-  for (const consulta of consultasSeleccionadas) {
-    const proc = procedimientos.find((p) => p.id === consulta.procedimiento_id);
-    if (proc) monto_total += proc.precio;
-  }
-  // Crear factura
-  const nuevaFactura = {
-    id: facturas.length ? Math.max(...facturas.map((f) => f.id)) + 1 : 1,
-    paciente_id,
-    monto_total,
-    estado_pago: "pendiente",
-    fecha_emision: new Date().toISOString().slice(0, 10),
-    fecha_pago: null,
-  };
-  facturas.push(nuevaFactura);
-  // Relacionar solo las consultas seleccionadas con la nueva factura y actualizar estatus
-  for (const consulta of consultasSeleccionadas) {
-    consulta.factura_id = nuevaFactura.id;
-    consulta.estatus = "facturado";
-  }
-  await writeJson("facturas.json", facturas);
-  await writeJson("consultas_procedimientos.json", consultas);
-  return { statusCode: 201, body: JSON.stringify(nuevaFactura) };
 };
